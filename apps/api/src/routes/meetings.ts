@@ -334,6 +334,7 @@ export async function meetingRoutes(base: FastifyInstance) {
     },
     async (req) => {
       activeStreams.get(req.params.id)?.close(1000, "reunião encerrada");
+      app.brains.drop(req.params.id);
       return tenantTx(req, async (tx) => {
         const m = await getMeeting(tx, req.params.id);
         assertCanEdit(req, m);
@@ -408,6 +409,8 @@ export async function meetingRoutes(base: FastifyInstance) {
     activeStreams.set(meetingId, socket);
 
     const log = req.log.child({ meetingId });
+    const brain = await app.brains.get(meetingId, ctx);
+    const unsubscribe = brain.onChange((state) => send({ type: "intelligence", state }));
     let session: Awaited<ReturnType<NonNullable<typeof app.transcription>["open"]>> | null = null;
     const pending: Promise<unknown>[] = [];
     try {
@@ -433,7 +436,7 @@ export async function meetingRoutes(base: FastifyInstance) {
                   })
                   .returning({ id: meetingTranscriptSegments.id }),
               )
-              .then(([row]) =>
+              .then(([row]) => {
                 send({
                   type: "segment",
                   segment: {
@@ -445,8 +448,10 @@ export async function meetingRoutes(base: FastifyInstance) {
                     text: r.text,
                     confidence: r.confidence,
                   },
-                }),
-              )
+                });
+                // Camada 4 (contexto da reunião) → motor de decisão
+                brain.onSegment({ id: row!.id, speaker, text: r.text, startMs: r.startMs });
+              })
               .catch((err: Error) => log.error({ err: err.message }, "falha ao gravar segmento"));
             pending.push(p);
           },
@@ -460,6 +465,7 @@ export async function meetingRoutes(base: FastifyInstance) {
     } catch (err) {
       activeStreams.delete(meetingId);
       log.error({ err: (err as Error).message }, "não foi possível abrir a transcrição");
+      unsubscribe();
       return fail(4502, "transcription_failed", "Não foi possível conectar ao serviço de transcrição");
     }
 
@@ -478,6 +484,8 @@ export async function meetingRoutes(base: FastifyInstance) {
       });
     });
     send({ type: "ready", meetingId, sampleRate: STREAM_AUDIO.sampleRate, channels: STREAM_AUDIO.channels });
+    const initial = brain.state();
+    send({ type: "intelligence", state: initial.current ? initial : await brain.prepare() });
 
     let windowStart = Date.now();
     let windowBytes = 0;
@@ -506,6 +514,7 @@ export async function meetingRoutes(base: FastifyInstance) {
     });
     socket.on("close", () => {
       activeStreams.delete(meetingId);
+      unsubscribe();
       void (async () => {
         await session?.close();
         await Promise.allSettled(pending);

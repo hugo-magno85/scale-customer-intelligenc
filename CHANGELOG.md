@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Etapa 4 — Inteligência em tempo real
+
+- Motor de decisão (Camada 5): banco de candidatas (playbook + skill), checklist de cobertura, sinais de risco/oportunidade com evidência, ranking explicável, adaptação da pergunta pelo DeepSeek com fallback.
+- Jev para sinais, cobertura e detecção da pergunta feita; heurística pt-BR em modo degradado, sinalizado na interface.
+- Prudência: sem expansão com risco aberto, perguntas reativas só com sinal, sem repetição, intervalo mínimo entre trocas.
+- Modo Preparação (primeira pergunta, checklist, pontos a investigar) e Modo Copiloto via WebSocket.
+- Ações: realizada (com aprofundamento em cadeia), ignorar, outra pergunta, observação, consultar playbook, itens não investigados.
+- Persistência e restauração do estado (`intelligence_suggestions`, `meeting_live_signals`, `meeting_notes`, `meetings.checklist`).
+- Painel “Inteligência em tempo real” na extensão.
+
 ### Etapa 3 — Scale Assistant e transcrição
 
 - Reuniões com cliente opcional (vínculo posterior), versão de playbook publicada e versão da skill registradas; participantes.

@@ -7,3 +7,4 @@ export * from "./audit.js";
 export * from "./dashboard.js";
 export * from "./playbooks.js";
 export * from "./meetings.js";
+export * from "./intelligence.js";

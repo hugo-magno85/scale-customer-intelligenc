@@ -282,6 +282,7 @@ export const meetings = pgTable("meetings", {
   consentConfirmedBy: uuid("consent_confirmed_by"),
   startedAt: ts("started_at"),
   endedAt: ts("ended_at"),
+  checklist: jsonb("checklist").$type<unknown[]>(),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
 });
@@ -325,6 +326,55 @@ export const meetingStreamTickets = pgTable("meeting_stream_tickets", {
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 
+// --- 0005: inteligência em tempo real ------------------------------------
+export const intelligenceSuggestions = pgTable("intelligence_suggestions", {
+  id: uuid("id").primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  question: text("question").notNull(),
+  reason: text("reason").notNull(),
+  objective: text("objective").notNull(),
+  type: text("type").notNull(),
+  indicator: text("indicator"),
+  priority: text("priority", { enum: ["high", "medium", "low"] }).notNull(),
+  playbookQuestionKey: text("playbook_question_key"),
+  candidateKey: text("candidate_key").notNull(),
+  evidenceSegmentId: bigint("evidence_segment_id", { mode: "number" }),
+  evidenceText: text("evidence_text"),
+  evidenceSpeaker: text("evidence_speaker", { enum: ["internal", "customer"] }),
+  status: text("status", { enum: ["shown", "done", "ignored", "replaced"] }).notNull(),
+  adaptedBy: text("adapted_by"),
+  createdAt: ts("created_at").notNull(),
+  resolvedAt: ts("resolved_at"),
+});
+
+export const meetingLiveSignals = pgTable("meeting_live_signals", {
+  id: uuid("id").primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  kind: text("kind", { enum: ["risk", "opportunity", "need"] }).notNull(),
+  key: text("key").notNull(),
+  label: text("label").notNull(),
+  confidence: real("confidence").notNull(),
+  evidenceSegmentId: bigint("evidence_segment_id", { mode: "number" }),
+  evidenceText: text("evidence_text").notNull(),
+  evidenceSpeaker: text("evidence_speaker"),
+  source: text("source", { enum: ["jev", "heuristic"] }).notNull(),
+  createdAt: ts("created_at").notNull(),
+});
+
+export const meetingNotes = pgTable("meeting_notes", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  authorId: uuid("author_id"),
+  suggestionId: uuid("suggestion_id"),
+  text: text("text").notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
 export const allTables = {
   tenants,
   users,
@@ -345,4 +395,7 @@ export const allTables = {
   meetingParticipants,
   meetingTranscriptSegments,
   meetingStreamTickets,
+  intelligenceSuggestions,
+  meetingLiveSignals,
+  meetingNotes,
 };

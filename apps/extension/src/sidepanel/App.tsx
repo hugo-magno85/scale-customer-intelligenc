@@ -6,6 +6,7 @@ import {
   type CurrentUser,
   type Customer,
   type Meeting,
+  type MeetingIntelligence,
   type MeetingType,
   type Playbook,
   type StreamServerMessage,
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useState } from "react";
 import { WEB_URL } from "../shared/env.js";
 import type { DetectedMeeting, RuntimeMessage } from "../shared/messages.js";
 import { api, ApiError, getAuth, getTenant, logout, setTenant, wsUrl } from "./api.js";
+import { IntelligencePanel } from "./Intelligence.js";
 
 type CaptureStatus = "idle" | "connecting" | "live" | "stopped" | "error";
 
@@ -174,10 +176,14 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
   const [interim, setInterim] = useState<{ speaker: string; text: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [intel, setIntel] = useState<MeetingIntelligence | null>(null);
 
   useEffect(() => {
     api<TranscriptSegment[]>(`/meetings/${meeting.id}/transcript`)
       .then(setSegments)
+      .catch(() => undefined);
+    api<MeetingIntelligence>(`/meetings/${meeting.id}/intelligence`)
+      .then(setIntel)
       .catch(() => undefined);
     const listener = (msg: RuntimeMessage) => {
       if (msg.type === "capture:status") {
@@ -191,11 +197,23 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
           setInterim(null);
         } else if (p.type === "interim") setInterim({ speaker: p.speaker, text: p.text });
         else if (p.type === "error") setErr(p.message);
+        else if (p.type === "intelligence") setIntel(p.state);
       }
     };
     chrome.runtime.onMessage.addListener(listener);
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, [meeting.id]);
+
+  // Sem captura nesta aba (ex.: outra pessoa/dispositivo capturando), mantém a inteligência atualizada
+  useEffect(() => {
+    if (status === "live" || meeting.status === "ended") return;
+    const t = setInterval(() => {
+      api<MeetingIntelligence>(`/meetings/${meeting.id}/intelligence`)
+        .then(setIntel)
+        .catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [status, meeting.id, meeting.status]);
 
   async function confirmConsent() {
     try {
@@ -310,10 +328,15 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
       {statusMsg && <p className={status === "error" ? "error" : "muted"}>{statusMsg}</p>}
       {err && <p className="error">{err}</p>}
 
-      <div className="card stack suggestion">
-        <div className="brand">INTELIGÊNCIA EM TEMPO REAL</div>
-        <p className="muted">As perguntas recomendadas aparecem aqui durante a reunião.</p>
-      </div>
+      {meeting.status !== "ended" && (
+        <IntelligencePanel
+          meetingId={meeting.id}
+          playbookVersionId={meeting.playbookVersionId}
+          state={intel}
+          setState={setIntel}
+          canAct
+        />
+      )}
 
       <div className="card stack">
         <div className="brand">TRANSCRIÇÃO</div>
