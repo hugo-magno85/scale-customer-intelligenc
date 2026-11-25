@@ -67,6 +67,7 @@ incluem a verificação de isolamento entre tenants.
 - [Segurança, multi-tenancy e LGPD](docs/security.md)
 - [Instalação](docs/installation.md)
 - [Implantação, backup e rollback](docs/deployment.md)
+- [Skill de CS e Playbook Intelligence](docs/playbook-intelligence.md)
 - [Integrações](docs/integrations.md)
 - [Decisões técnicas (ADRs)](docs/adr)
 - [Como contribuir](CONTRIBUTING.md)

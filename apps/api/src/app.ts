@@ -1,9 +1,11 @@
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import { sql, type Database } from "@sci/db";
+import type { JobDispatcher } from "@sci/jobs";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -17,11 +19,14 @@ import { contextPlugin } from "./plugins/context.js";
 import { authRoutes } from "./routes/auth.js";
 import { customerRoutes } from "./routes/customers.js";
 import { platformRoutes } from "./routes/platform.js";
+import { playbookRoutes } from "./routes/playbooks.js";
+import { skillRoutes } from "./routes/skill.js";
+import "./lib/jobs.js";
 import { tenantAdminRoutes } from "./routes/tenant-admin.js";
 
 export const API_VERSION = "0.1.0";
 
-export async function buildApp(config: Config, database: Database) {
+export async function buildApp(config: Config, database: Database, jobs: JobDispatcher) {
   const app = Fastify({
     logger:
       config.NODE_ENV === "test"
@@ -44,6 +49,7 @@ export async function buildApp(config: Config, database: Database) {
   app.setSerializerCompiler(serializerCompiler);
   app.decorate("config", config);
   app.decorate("database", database);
+  app.decorate("jobs", jobs);
 
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
@@ -53,6 +59,7 @@ export async function buildApp(config: Config, database: Database) {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   });
   await app.register(cookie);
+  await app.register(multipart, { limits: { fieldNameSize: 100, fields: 10, parts: 20 } });
   await app.register(rateLimit, { global: true, max: 600, timeWindow: "1 minute" });
   await app.register(swagger, {
     openapi: { info: { title: "Scale Customer Intelligence API", version: API_VERSION } },
@@ -109,6 +116,8 @@ export async function buildApp(config: Config, database: Database) {
       await v1.register(platformRoutes);
       await v1.register(tenantAdminRoutes);
       await v1.register(customerRoutes);
+      await v1.register(playbookRoutes);
+      await v1.register(skillRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },

@@ -55,9 +55,11 @@ services:
       PUBLIC_APP_URL: ${PUBLIC_APP_URL}
       COOKIE_SECURE: "true"
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
     healthcheck:
       test:
         [
@@ -92,7 +94,8 @@ services:
         ]
       interval: 30s
     deploy: { resources: { limits: { memory: "${WORKER_MEMORY_LIMIT:-512m}" } } }
-    networks: [internal]
+    # internal: banco/redis · egress: saída para DeepSeek e TypeSafe
+    networks: [internal, egress]
 
   web:
     image: ${REGISTRY:-ghcr.io/academia-scale}/sci-web:${SCI_VERSION:?}-${SCI_ENV}
@@ -120,3 +123,4 @@ volumes:
 networks:
   internal: { internal: true }
   edge: {}
+  egress: {}
