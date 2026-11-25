@@ -21,7 +21,8 @@ export default function LoginPage() {
         tenant: false,
         json: { email: form.get("email"), password: form.get("password") },
       });
-      router.replace("/app/dashboard");
+      const next = new URLSearchParams(location.search).get("next");
+      router.replace(next && next.startsWith("/") && !next.startsWith("//") ? next : "/app/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível entrar");
     } finally {

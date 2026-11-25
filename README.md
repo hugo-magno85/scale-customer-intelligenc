@@ -28,6 +28,7 @@ Detalhes no [plano da Fase A](docs/00-plano-fase-a.md) e no [CHANGELOG](CHANGELO
 apps/api         API REST (Fastify + Zod), autenticação, RBAC, contexto de tenant
 apps/web         Plataforma web (Next.js)
 apps/worker      Jobs assíncronos (BullMQ + Redis)
+apps/extension   Scale Assistant — extensão Chrome MV3
 packages/contracts  Contratos Zod compartilhados (API, web, extensão)
 packages/db      Migrations SQL, políticas RLS, schema Drizzle, migrator
 packages/security   Criptografia de credenciais (AES-256-GCM), senhas (Argon2id), tokens
@@ -68,6 +69,7 @@ incluem a verificação de isolamento entre tenants.
 - [Instalação](docs/installation.md)
 - [Implantação, backup e rollback](docs/deployment.md)
 - [Skill de CS e Playbook Intelligence](docs/playbook-intelligence.md)
+- [Scale Assistant (extensão)](docs/scale-assistant.md)
 - [Integrações](docs/integrations.md)
 - [Decisões técnicas (ADRs)](docs/adr)
 - [Como contribuir](CONTRIBUTING.md)

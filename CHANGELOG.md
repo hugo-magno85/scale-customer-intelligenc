@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Etapa 3 — Scale Assistant e transcrição
+
+- Reuniões com cliente opcional (vínculo posterior), versão de playbook publicada e versão da skill registradas; participantes.
+- Consentimento obrigatório (LGPD) antes de qualquer captura, com método registrado e auditado.
+- Ticket de uso único (60 s) para o WebSocket de áudio; validação de quadros e limite de taxa.
+- Relay para o Deepgram (multicanal, pt-BR, `mip_opt_out`), só segmentos finais são gravados; áudio não é armazenado.
+- Extensão MV3: adaptadores Meet/Zoom/Teams, captura da aba + microfone em documento offscreen, painel lateral com preparação, consentimento e transcrição ao vivo; aviso para apps desktop.
+- Conexão da extensão pela web via `externally_connectable` com allowlist de IDs.
+- Web: módulo Assistente de Calls (lista e detalhe com transcrição) e linha do tempo do cliente.
+
 ### Etapa 2 — Skill de CS e Playbook Intelligence
 
 - `@sci/cs-skill` v1.0.0: princípios, 8 indicadores com rubricas, 10 sinais de churn, 8 oportunidades, 12 tipos de pergunta, biblioteca de perguntas com aprofundamento, objetivos por tipo de reunião e regras de prudência; versionada com hash de conteúdo.

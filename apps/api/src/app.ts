@@ -1,11 +1,13 @@
 import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import websocket from "@fastify/websocket";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import { sql, type Database } from "@sci/db";
 import type { JobDispatcher } from "@sci/jobs";
+import type { TranscriptionProvider } from "@sci/intelligence";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -19,6 +21,7 @@ import { contextPlugin } from "./plugins/context.js";
 import { authRoutes } from "./routes/auth.js";
 import { customerRoutes } from "./routes/customers.js";
 import { platformRoutes } from "./routes/platform.js";
+import { meetingRoutes } from "./routes/meetings.js";
 import { playbookRoutes } from "./routes/playbooks.js";
 import { skillRoutes } from "./routes/skill.js";
 import "./lib/jobs.js";
@@ -26,7 +29,19 @@ import { tenantAdminRoutes } from "./routes/tenant-admin.js";
 
 export const API_VERSION = "0.1.0";
 
-export async function buildApp(config: Config, database: Database, jobs: JobDispatcher) {
+export interface AppServices {
+  jobs: JobDispatcher;
+  /** null quando DEEPGRAM_API_KEY não está configurada. */
+  transcription: TranscriptionProvider | null;
+}
+
+declare module "fastify" {
+  interface FastifyInstance {
+    transcription: TranscriptionProvider | null;
+  }
+}
+
+export async function buildApp(config: Config, database: Database, services: AppServices) {
   const app = Fastify({
     logger:
       config.NODE_ENV === "test"
@@ -49,7 +64,8 @@ export async function buildApp(config: Config, database: Database, jobs: JobDisp
   app.setSerializerCompiler(serializerCompiler);
   app.decorate("config", config);
   app.decorate("database", database);
-  app.decorate("jobs", jobs);
+  app.decorate("jobs", services.jobs);
+  app.decorate("transcription", { getter: () => services.transcription });
 
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
@@ -59,6 +75,7 @@ export async function buildApp(config: Config, database: Database, jobs: JobDisp
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   });
   await app.register(cookie);
+  await app.register(websocket, { options: { maxPayload: 128 * 1024 } });
   await app.register(multipart, { limits: { fieldNameSize: 100, fields: 10, parts: 20 } });
   await app.register(rateLimit, { global: true, max: 600, timeWindow: "1 minute" });
   await app.register(swagger, {
@@ -118,6 +135,7 @@ export async function buildApp(config: Config, database: Database, jobs: JobDisp
       await v1.register(customerRoutes);
       await v1.register(playbookRoutes);
       await v1.register(skillRoutes);
+      await v1.register(meetingRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },

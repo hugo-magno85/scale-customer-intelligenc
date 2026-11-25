@@ -1,6 +1,6 @@
 import { createTestDb, type TestDb } from "@sci/db/testing";
 import pg from "pg";
-import type { ReasoningProvider } from "@sci/intelligence";
+import type { ReasoningProvider, TranscriptionProvider } from "@sci/intelligence";
 import { buildApp } from "../src/app.js";
 import { inlineDispatcher } from "../src/lib/jobs.js";
 import { provisionPlatformAdmin } from "../src/lib/provision-admin.js";
@@ -36,7 +36,13 @@ export async function setup() {
     },
     decisions: null,
   };
-  const app = await buildApp(config, db.app, inlineDispatcher(deps, { wait: true }));
+  const transcription: { provider: TranscriptionProvider | null } = { provider: null };
+  const app = await buildApp(config, db.app, {
+    jobs: inlineDispatcher(deps, { wait: true }),
+    get transcription() {
+      return transcription.provider;
+    },
+  } as never);
   const owner = new pg.Client({ connectionString: db.ownerUrl });
   await owner.connect();
   await provisionPlatformAdmin(owner, "super@scale.com", "Super", "super-senha-segura");
@@ -46,6 +52,7 @@ export async function setup() {
     app,
     ai,
     fakeReasoning,
+    transcription,
     async close() {
       await app.close();
       await db.drop();

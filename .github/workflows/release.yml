@@ -42,6 +42,19 @@ jobs:
           build-args: APP=worker
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/sci-worker:${{ steps.v.outputs.version }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - name: Extensão Scale Assistant (zip)
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm turbo run build --filter=@sci/extension...
+          (cd apps/extension && SCI_API_URL="${{ vars.PUBLIC_API_URL }}" SCI_WEB_URL="${{ vars.PUBLIC_APP_URL }}" node build.mjs)
+          (cd apps/extension/dist && zip -r "../../../scale-assistant-${{ steps.v.outputs.version }}.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scale-assistant-${{ steps.v.outputs.version }}
+          path: scale-assistant-*.zip
       - name: Web
         uses: docker/build-push-action@v6
         with:
