@@ -19,7 +19,12 @@ const jobs =
   inlineDispatcher({ database, reasoning: ds ? new DeepSeekProvider(ds) : null, decisions: jevFromEnv() });
 const dg = deepgramConfigFromEnv();
 if (!dg) console.warn("DEEPGRAM_API_KEY ausente: captura de reuniões ficará indisponível");
-const app = await buildApp(config, database, { jobs, transcription: dg ? new DeepgramProvider(dg) : null });
+const app = await buildApp(config, database, {
+  jobs,
+  transcription: dg ? new DeepgramProvider(dg) : null,
+  reasoning: ds ? new DeepSeekProvider({ ...ds, maxRetries: 0, timeoutMs: 8000 }) : null,
+  decisions: jevFromEnv(),
+});
 
 const shutdown = async (signal: string) => {
   app.log.info({ signal }, "encerrando");

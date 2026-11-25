@@ -42,6 +42,8 @@ export async function setup() {
     get transcription() {
       return transcription.provider;
     },
+    reasoning: null,
+    decisions: null,
   } as never);
   const owner = new pg.Client({ connectionString: db.ownerUrl });
   await owner.connect();

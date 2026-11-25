@@ -7,7 +7,9 @@ import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import { sql, type Database } from "@sci/db";
 import type { JobDispatcher } from "@sci/jobs";
-import type { TranscriptionProvider } from "@sci/intelligence";
+import type { DecisionProvider, ReasoningProvider, TranscriptionProvider } from "@sci/intelligence";
+import { BrainManager } from "./realtime/brains.js";
+import { intelligenceRoutes } from "./routes/intelligence.js";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -33,11 +35,16 @@ export interface AppServices {
   jobs: JobDispatcher;
   /** null quando DEEPGRAM_API_KEY não está configurada. */
   transcription: TranscriptionProvider | null;
+  /** DeepSeek (adaptação das perguntas em tempo real). */
+  reasoning?: ReasoningProvider | null;
+  /** Jev (sinais, cobertura e detecção de pergunta feita). */
+  decisions?: DecisionProvider | null;
 }
 
 declare module "fastify" {
   interface FastifyInstance {
     transcription: TranscriptionProvider | null;
+    brains: BrainManager;
   }
 }
 
@@ -66,6 +73,14 @@ export async function buildApp(config: Config, database: Database, services: App
   app.decorate("database", database);
   app.decorate("jobs", services.jobs);
   app.decorate("transcription", { getter: () => services.transcription });
+  app.decorate(
+    "brains",
+    new BrainManager(
+      database,
+      () => ({ reasoning: services.reasoning ?? null, decisions: services.decisions ?? null }),
+      app.log,
+    ),
+  );
 
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cors, {
@@ -136,6 +151,7 @@ export async function buildApp(config: Config, database: Database, services: App
       await v1.register(playbookRoutes);
       await v1.register(skillRoutes);
       await v1.register(meetingRoutes);
+      await v1.register(intelligenceRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },

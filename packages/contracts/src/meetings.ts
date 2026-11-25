@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Uuid } from "./common.js";
 import { MeetingType } from "./playbooks.js";
+import { MeetingIntelligence as MeetingIntelligenceRef } from "./intelligence.js";
 
 export const MeetingPlatform = z.enum(["google_meet", "zoom", "teams", "other"]);
 export type MeetingPlatform = z.infer<typeof MeetingPlatform>;
@@ -115,6 +116,7 @@ export const StreamServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("segment"), segment: TranscriptSegment }),
   z.object({ type: z.literal("error"), code: z.string(), message: z.string() }),
   z.object({ type: z.literal("closed"), reason: z.string() }),
+  z.object({ type: z.literal("intelligence"), state: z.lazy(() => MeetingIntelligenceRef) }),
 ]);
 export type StreamServerMessage = z.infer<typeof StreamServerMessage>;
 
