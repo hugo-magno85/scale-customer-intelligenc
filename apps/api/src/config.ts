@@ -21,6 +21,8 @@ const Env = z.object({
   COOKIE_DOMAIN: z.string().optional(),
   LOGIN_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().default(10),
   PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
+  /** Fila de jobs. Sem Redis, os jobs rodam no próprio processo (apenas desenvolvimento). */
+  REDIS_URL: z.string().optional(),
 });
 
 export type Config = z.infer<typeof Env> & { corsOrigins: string[] };

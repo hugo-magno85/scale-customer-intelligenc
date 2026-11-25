@@ -2,7 +2,10 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  customType,
   date,
+  integer,
+  numeric,
   inet,
   jsonb,
   pgTable,
@@ -141,6 +144,120 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 
+// --- 0003: playbooks e skill -------------------------------------------
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
+
+export const csSkillVersions = pgTable("cs_skill_versions", {
+  version: text("version").primaryKey(),
+  contentHash: text("content_hash").notNull(),
+  releasedAt: date("released_at", { mode: "string" }).notNull(),
+  changelog: text("changelog")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  registeredAt: ts("registered_at").notNull().defaultNow(),
+});
+
+export const tenantSkillSettings = pgTable("tenant_skill_settings", {
+  tenantId: uuid("tenant_id").primaryKey(),
+  settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
+  updatedBy: uuid("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const playbooks = pgTable("playbooks", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  meetingType: text("meeting_type").notNull(),
+  journeyStage: text("journey_stage"),
+  segment: text("segment"),
+  operation: text("operation"),
+  active: boolean("active").notNull().default(true),
+  createdBy: uuid("created_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const playbookVersions = pgTable("playbook_versions", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  playbookId: uuid("playbook_id").notNull(),
+  number: integer("number").notNull(),
+  status: text("status", {
+    enum: ["processing", "failed", "draft", "in_review", "approved", "published", "archived"],
+  }).notNull(),
+  source: text("source", { enum: ["upload", "manual"] }).notNull(),
+  structure: jsonb("structure").$type<unknown>(),
+  processingError: text("processing_error"),
+  processingWarnings: text("processing_warnings")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  interpretationModel: text("interpretation_model"),
+  interpretationUsage: jsonb("interpretation_usage").$type<Record<string, unknown>>(),
+  skillVersion: text("skill_version"),
+  createdBy: uuid("created_by"),
+  approvedBy: uuid("approved_by"),
+  approvedAt: ts("approved_at"),
+  publishedAt: ts("published_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const playbookDocuments = pgTable("playbook_documents", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  versionId: uuid("version_id").notNull(),
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  sha256: text("sha256").notNull(),
+  content: bytea("content").notNull(),
+  extractedText: text("extracted_text"),
+  extractedChars: integer("extracted_chars"),
+  createdBy: uuid("created_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const playbookQuestions = pgTable("playbook_questions", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  versionId: uuid("version_id").notNull(),
+  key: text("key").notNull(),
+  text: text("text").notNull(),
+  type: text("type").notNull(),
+  indicator: text("indicator"),
+  priority: text("priority").notNull(),
+  stageKey: text("stage_key"),
+  weight: numeric("weight", { precision: 4, scale: 2, mode: "number" }).notNull(),
+  required: boolean("required").notNull(),
+  position: integer("position").notNull(),
+});
+
+export const playbookCriteria = pgTable("playbook_criteria", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  versionId: uuid("version_id").notNull(),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  indicator: text("indicator"),
+  weight: numeric("weight", { precision: 4, scale: 2, mode: "number" }).notNull(),
+});
+
 export const allTables = {
   tenants,
   users,
@@ -150,4 +267,11 @@ export const allTables = {
   customers,
   contacts,
   auditLogs,
+  csSkillVersions,
+  tenantSkillSettings,
+  playbooks,
+  playbookVersions,
+  playbookDocuments,
+  playbookQuestions,
+  playbookCriteria,
 };

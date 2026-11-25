@@ -5,7 +5,8 @@ import { Redis } from "ioredis";
 import { pino } from "pino";
 import { z } from "zod";
 import { purgeExpiredSessions } from "./jobs/maintenance.js";
-import { QUEUES } from "./queues.js";
+import { deepSeekConfigFromEnv, DeepSeekProvider, jevFromEnv } from "@sci/intelligence";
+import { PlaybookProcessPayload, processPlaybookVersion, QUEUES } from "@sci/jobs";
 
 const env = z
   .object({
@@ -41,6 +42,27 @@ const worker = new Worker(
 );
 worker.on("failed", (job, err) => log.error({ job: job?.name, err: err.message }, "job falhou"));
 
+// Playbook Intelligence: extração + interpretação (DeepSeek) + classificação (Jev)
+const ds = deepSeekConfigFromEnv();
+if (!ds)
+  log.warn("DEEPSEEK_API_KEY ausente: playbooks enviados terão a interpretação marcada como indisponível");
+const processorDeps = {
+  database,
+  reasoning: ds ? new DeepSeekProvider(ds) : null,
+  decisions: jevFromEnv(),
+  log: { info: (o: object, m: string) => log.info(o, m), warn: (o: object, m: string) => log.warn(o, m) },
+};
+const playbookWorker = new Worker(
+  QUEUES.playbooks,
+  async (job) => ({
+    outcome: await processPlaybookVersion(processorDeps, PlaybookProcessPayload.parse(job.data)),
+  }),
+  { connection, concurrency: 2 },
+);
+playbookWorker.on("failed", (job, err) =>
+  log.error({ queue: QUEUES.playbooks, jobId: job?.id, err: err.message }, "job de playbook falhou"),
+);
+
 const health = createServer(async (req, res) => {
   if (req.url !== "/health") {
     res.writeHead(404).end();
@@ -59,6 +81,7 @@ log.info({ queues: Object.values(QUEUES) }, "worker iniciado");
 
 const shutdown = async () => {
   await worker.close();
+  await playbookWorker.close();
   await maintenanceQueue.close();
   connection.disconnect();
   await database.close();
