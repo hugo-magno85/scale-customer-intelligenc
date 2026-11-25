@@ -4,7 +4,6 @@ import {
   CreateCustomerRequest,
   Customer,
   CustomerListQuery,
-  DashboardSummary,
   UpdateCustomerRequest,
 } from "@sci/contracts";
 import { and, contacts, count, customers, eq, ilike, sql, users, type Tx } from "@sci/db";
@@ -235,35 +234,5 @@ export async function customerRoutes(base: FastifyInstance) {
       const { tenantId: _t, updatedAt: _u, ...out } = c;
       return reply.status(201).send(out);
     },
-  );
-
-  // Dashboard -------------------------------------------------------------
-  // Só retorna o que existe de fato. Indicadores que dependem de análises
-  // de reuniões (Etapas 4–5) voltam como null até haver dados reais.
-  app.get(
-    "/dashboard/summary",
-    {
-      schema: { tags: ["dashboard"], response: { 200: DashboardSummary } },
-      preHandler: requirePermission("reports.read"),
-    },
-    async (req) =>
-      tenantTx(req, async (tx) => {
-        const [{ n } = { n: 0 }] = await tx
-          .select({ n: count() })
-          .from(customers)
-          .where(eq(customers.status, "active"));
-        return {
-          activeCustomers: n,
-          healthy: null,
-          attention: null,
-          highRisk: null,
-          averageHealth: null,
-          revenueAtRiskCents: null,
-          openExpansionOpportunities: null,
-          analyzedMeetings: 0,
-          pendingActionTasks: null,
-          overdueActionTasks: null,
-        };
-      }),
   );
 }

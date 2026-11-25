@@ -375,6 +375,166 @@ export const meetingNotes = pgTable("meeting_notes", {
   createdAt: ts("created_at").notNull().defaultNow(),
 });
 
+// --- 0006: Customer Intelligence -------------------------------------------
+export const tenantHealthSettings = pgTable("tenant_health_settings", {
+  tenantId: uuid("tenant_id").primaryKey(),
+  settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
+  updatedBy: uuid("updated_by"),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const meetingAnalyses = pgTable("meeting_analyses", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  version: integer("version").notNull(),
+  status: text("status", { enum: ["processing", "completed", "failed"] }).notNull(),
+  mode: text("mode", { enum: ["full", "basic"] }),
+  summary: text("summary"),
+  diagnosis: text("diagnosis"),
+  result: jsonb("result").$type<Record<string, unknown>>().notNull().default({}),
+  warnings: text("warnings")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  error: text("error"),
+  model: text("model"),
+  skillVersion: text("skill_version"),
+  playbookVersionId: uuid("playbook_version_id"),
+  requestedBy: uuid("requested_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  completedAt: ts("completed_at"),
+});
+
+export const intelligenceIndicators = pgTable("intelligence_indicators", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  analysisId: uuid("analysis_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  customerId: uuid("customer_id"),
+  indicator: text("indicator").notNull(),
+  score: real("score"),
+  confidence: real("confidence"),
+  rationale: text("rationale").notNull(),
+  evidence: jsonb("evidence").$type<unknown[]>().notNull().default([]),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const customerHealthSnapshots = pgTable("customer_health_snapshots", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  customerId: uuid("customer_id").notNull(),
+  meetingId: uuid("meeting_id"),
+  analysisId: uuid("analysis_id"),
+  score: real("score"),
+  classification: text("classification", { enum: ["healthy", "attention", "high_risk"] }),
+  factors: jsonb("factors").$type<unknown[]>().notNull().default([]),
+  missing: text("missing")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  overrides: text("overrides")
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  weights: jsonb("weights").$type<Record<string, number>>().notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const churnSignals = pgTable("churn_signals", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  customerId: uuid("customer_id").notNull(),
+  factorKey: text("factor_key").notNull(),
+  factorLabel: text("factor_label").notNull(),
+  severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  recurrence: integer("recurrence").notNull().default(1),
+  status: text("status", { enum: ["open", "monitoring", "resolved"] })
+    .notNull()
+    .default("open"),
+  evidence: jsonb("evidence").$type<unknown[]>().notNull(),
+  recommendation: text("recommendation").notNull(),
+  nextAction: text("next_action"),
+  revenueAtRiskCents: bigint("revenue_at_risk_cents", { mode: "number" }),
+  firstSeenAt: ts("first_seen_at").notNull().defaultNow(),
+  lastSeenAt: ts("last_seen_at").notNull().defaultNow(),
+  lastMeetingId: uuid("last_meeting_id"),
+  lastAnalysisId: uuid("last_analysis_id"),
+});
+
+export const expansionOpportunities = pgTable("expansion_opportunities", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  customerId: uuid("customer_id").notNull(),
+  meetingId: uuid("meeting_id"),
+  analysisId: uuid("analysis_id"),
+  type: text("type").notNull(),
+  typeLabel: text("type_label").notNull(),
+  need: text("need").notNull(),
+  evidence: jsonb("evidence").$type<unknown[]>().notNull(),
+  potentialCents: bigint("potential_cents", { mode: "number" }),
+  product: text("product"),
+  nextAction: text("next_action"),
+  ownerUserId: uuid("owner_user_id"),
+  status: text("status", { enum: ["open", "qualified", "won", "lost", "discarded"] })
+    .notNull()
+    .default("open"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const actionPlans = pgTable("action_plans", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  customerId: uuid("customer_id"),
+  meetingId: uuid("meeting_id"),
+  analysisId: uuid("analysis_id"),
+  title: text("title").notNull(),
+  createdBy: uuid("created_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const actionTasks = pgTable("action_tasks", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  planId: uuid("plan_id"),
+  customerId: uuid("customer_id"),
+  meetingId: uuid("meeting_id"),
+  title: text("title").notNull(),
+  description: text("description"),
+  ownerUserId: uuid("owner_user_id"),
+  responsibleParty: text("responsible_party", { enum: ["internal", "customer"] })
+    .notNull()
+    .default("internal"),
+  dueDate: date("due_date", { mode: "string" }),
+  priority: text("priority", { enum: ["high", "medium", "low"] })
+    .notNull()
+    .default("medium"),
+  status: text("status", { enum: ["pending", "in_progress", "done", "cancelled"] })
+    .notNull()
+    .default("pending"),
+  evidence: jsonb("evidence").$type<unknown[]>().notNull().default([]),
+  recommendation: text("recommendation"),
+  createdBy: uuid("created_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+  completedAt: ts("completed_at"),
+});
+
 export const allTables = {
   tenants,
   users,
@@ -398,4 +558,12 @@ export const allTables = {
   intelligenceSuggestions,
   meetingLiveSignals,
   meetingNotes,
+  tenantHealthSettings,
+  meetingAnalyses,
+  intelligenceIndicators,
+  customerHealthSnapshots,
+  churnSignals,
+  expansionOpportunities,
+  actionPlans,
+  actionTasks,
 };

@@ -21,6 +21,7 @@ export interface BrainDeps {
 const RECENT_WINDOW = 10;
 const SIGNAL_FRESH_MS = 4 * 60_000;
 const PRIORITY_SCORE = { high: 3, medium: 2, low: 1 } as const;
+const SEVERITY_BONUS: Record<string, number> = { critical: 3, high: 2, medium: 1, low: 0 };
 
 const Adapted = z.object({
   question: z.string().trim().min(5).max(400),
@@ -49,6 +50,8 @@ export class MeetingBrain {
   private lastSuggestionAt = 0;
   private mode: MeetingIntelligence["mode"] = "preparation";
   private analyzing: Promise<void> | null = null;
+  /** Índice do primeiro segmento ainda não analisado. */
+  private analyzedUpTo = 0;
   private pendingAnalysis = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private listeners = new Set<(s: MeetingIntelligence) => void>();
@@ -102,6 +105,7 @@ export class MeetingBrain {
     this.current = data.suggestions.find((s) => s.status === "shown") ?? null;
     this.signals = data.signals.map((s) => ({ ...s, at: new Date(s.createdAt).getTime() }));
     this.segments = data.segments.slice(-200);
+    this.analyzedUpTo = this.segments.length;
     if (data.checklist?.length) {
       const byKey = new Map(data.checklist.map((c) => [c.key, c.status]));
       this.checklist = this.checklist.map((c) => ({ ...c, status: byKey.get(c.key) ?? c.status }));
@@ -120,7 +124,11 @@ export class MeetingBrain {
   onSegment(seg: Segment, debounceMs = 1200) {
     this.mode = "copilot";
     this.segments.push(seg);
-    if (this.segments.length > 400) this.segments.splice(0, this.segments.length - 400);
+    if (this.segments.length > 400) {
+      const drop = this.segments.length - 400;
+      this.segments.splice(0, drop);
+      this.analyzedUpTo = Math.max(0, this.analyzedUpTo - drop);
+    }
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => void this.analyze(), debounceMs);
   }
@@ -156,17 +164,28 @@ export class MeetingBrain {
   private async runAnalysis() {
     const recent = this.recent();
     if (!recent.length) return;
-    const lastCustomer = [...recent].reverse().find((s) => s.speaker === "customer") ?? null;
-    let detected: DetectedSignal[];
+    // Todas as falas novas desde a última análise (várias podem chegar entre dois ciclos)
+    const fresh = this.segments.slice(this.analyzedUpTo);
+    this.analyzedUpTo = this.segments.length;
+    const freshCustomer = fresh.filter((s) => s.speaker === "customer");
+    const lastCustomer = freshCustomer.at(-1) ?? null;
+    let detected: (DetectedSignal & { seg: Segment | null })[];
     let askedCurrent = false;
     let answerIncomplete = false;
     const covered = new Map<string, number>();
+    const heuristic = () =>
+      freshCustomer.flatMap((seg) => detectHeuristic(seg.text).map((d) => ({ ...d, seg })));
 
     const openItems = this.checklist.filter((c) => c.status !== "covered").slice(0, 8);
     if (this.deps.decisions) {
       try {
-        const r = await this.decide(recent, openItems);
-        detected = r.detected;
+        const r = await this.decide(recent, freshCustomer, openItems);
+        // evidência: a fala nova do cliente que melhor corresponde ao sinal (ou a última)
+        const hints = heuristic();
+        detected = r.detected.map((d) => ({
+          ...d,
+          seg: hints.find((h) => h.key === d.key)?.seg ?? lastCustomer,
+        }));
         askedCurrent = r.askedCurrent;
         answerIncomplete = r.answerIncomplete;
         r.coverage.forEach((v, k) => covered.set(k, v));
@@ -174,13 +193,13 @@ export class MeetingBrain {
       } catch (err) {
         this.degraded.add("Detecção de sinais temporariamente indisponível.");
         this.deps.log?.("Jev indisponível; usando heurística", { err: (err as Error).message });
-        detected = lastCustomer ? detectHeuristic(lastCustomer.text) : [];
+        detected = heuristic();
       }
     } else {
-      detected = lastCustomer ? detectHeuristic(lastCustomer.text) : [];
+      detected = heuristic();
       askedCurrent =
         !!this.current &&
-        recent.some((s) => s.speaker === "internal" && similar(s.text, this.current!.question));
+        fresh.some((s) => s.speaker === "internal" && similar(s.text, this.current!.question));
     }
 
     // Sinais: registra apenas novos (por chave), com a evidência que os originou
@@ -192,8 +211,8 @@ export class MeetingBrain {
         existing.confidence = Math.max(existing.confidence, d.confidence);
         continue;
       }
-      const evidence: Evidence = lastCustomer
-        ? { segmentId: lastCustomer.id, speaker: "customer", text: lastCustomer.text.slice(0, 500) }
+      const evidence: Evidence = d.seg
+        ? { segmentId: d.seg.id, speaker: "customer", text: d.seg.text.slice(0, 500) }
         : { segmentId: null, speaker: null, text: "" };
       const sig: LiveSignal & { at: number } = {
         id: randomUUID(),
@@ -226,7 +245,11 @@ export class MeetingBrain {
     // Pergunta atual feita pelo profissional → registra e gera aprofundamento
     if (this.current && askedCurrent) {
       await this.resolveCurrent("done", answerIncomplete);
-    } else if (this.current && newSignals.some((s) => s.kind === "risk") && this.cooldownPassed()) {
+    } else if (
+      this.current &&
+      newSignals.some((s) => s.kind === "risk") &&
+      (this.cooldownPassed() || newSignals.some((s) => s.key === "cancellation_intent"))
+    ) {
       // Sinal de risco novo tem prioridade sobre a sugestão atual
       const top = this.rankCandidates()[0];
       if (top && top.candidate.signals.some((k) => newSignals.some((s) => s.key === k))) {
@@ -235,11 +258,16 @@ export class MeetingBrain {
       }
     }
     if (checklistChanged) await this.deps.persistence?.checklist(this.checklist);
-    if (!this.current) await this.suggestNext(newSignals[0] ?? null, "analysis");
+    const trigger =
+      newSignals.find((s) => s.key === "cancellation_intent") ??
+      newSignals.find((s) => s.kind === "risk") ??
+      newSignals[0] ??
+      null;
+    if (!this.current) await this.suggestNext(trigger, "analysis");
     this.emit();
   }
 
-  private async decide(recent: Segment[], openItems: ChecklistItem[]) {
+  private async decide(recent: Segment[], freshCustomer: Segment[], openItems: ChecklistItem[]) {
     const riskCriteria = Object.fromEntries([
       ...RISK_SIGNALS.map((s) => [s.key, s.description]),
       ["none", "Nenhum sinal de risco no último trecho"],
@@ -357,14 +385,18 @@ export class MeetingBrain {
       if (c.source === "playbook") score += 3 + c.weight * 0.3 + (c.required ? 2 : 0);
       if (c.source === "followup") score += 4;
       let matched: string | null = null;
+      let best = 0;
       for (const s of active) {
-        if (c.signals.includes(s.key)) {
-          // sinal presente: a prioridade da pergunta pesa em dobro e perguntas mais específicas ao sinal vencem
-          score += 5 + s.confidence + PRIORITY_SCORE[c.priority] + 1 / c.signals.length;
+        if (!c.signals.includes(s.key)) continue;
+        // sinal presente: gravidade do sinal + prioridade da pergunta (em dobro) + especificidade
+        const sev = SEVERITY_BONUS[RISK_SIGNALS.find((r) => r.key === s.key)?.baseSeverity ?? "low"] ?? 0;
+        const bonus = 5 + s.confidence + sev + PRIORITY_SCORE[c.priority] + 1 / c.signals.length;
+        if (bonus > best) {
+          best = bonus;
           matched = s.key;
-          break;
         }
       }
+      score += best;
       for (const t of c.covers) if (openTopics.has(t)) score += 1.5;
       if (c.covers.length && c.covers.every((t) => !openTopics.has(t)) && c.source === "library" && !matched)
         score -= 2;

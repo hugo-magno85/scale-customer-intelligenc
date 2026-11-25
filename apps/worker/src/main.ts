@@ -6,7 +6,13 @@ import { pino } from "pino";
 import { z } from "zod";
 import { purgeExpiredSessions } from "./jobs/maintenance.js";
 import { deepSeekConfigFromEnv, DeepSeekProvider, jevFromEnv } from "@sci/intelligence";
-import { PlaybookProcessPayload, processPlaybookVersion, QUEUES } from "@sci/jobs";
+import {
+  MeetingAnalysisPayload,
+  PlaybookProcessPayload,
+  processMeetingAnalysis,
+  processPlaybookVersion,
+  QUEUES,
+} from "@sci/jobs";
 
 const env = z
   .object({
@@ -59,6 +65,17 @@ const playbookWorker = new Worker(
   }),
   { connection, concurrency: 2 },
 );
+// Modo Análise: pós-reunião (indicadores, Health, Churn Radar, Expansão, Planos de Ação)
+const analysisWorker = new Worker(
+  QUEUES.analysis,
+  async (job) => ({
+    outcome: await processMeetingAnalysis(processorDeps, MeetingAnalysisPayload.parse(job.data)),
+  }),
+  { connection, concurrency: 2 },
+);
+analysisWorker.on("failed", (job, err) =>
+  log.error({ queue: QUEUES.analysis, jobId: job?.id, err: err.message }, "job de análise falhou"),
+);
 playbookWorker.on("failed", (job, err) =>
   log.error({ queue: QUEUES.playbooks, jobId: job?.id, err: err.message }, "job de playbook falhou"),
 );
@@ -82,6 +99,7 @@ log.info({ queues: Object.values(QUEUES) }, "worker iniciado");
 const shutdown = async () => {
   await worker.close();
   await playbookWorker.close();
+  await analysisWorker.close();
   await maintenanceQueue.close();
   connection.disconnect();
   await database.close();

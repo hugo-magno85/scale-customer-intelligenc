@@ -8,3 +8,5 @@ export * from "./realtime/types.js";
 export * from "./realtime/candidates.js";
 export * from "./realtime/heuristics.js";
 export * from "./realtime/brain.js";
+export * from "./analysis/analyze.js";
+export * from "./analysis/health.js";

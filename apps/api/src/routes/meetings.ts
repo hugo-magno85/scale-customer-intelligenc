@@ -35,6 +35,7 @@ import { z } from "zod";
 import { audit } from "../lib/audit.js";
 import { badRequest, conflict, forbidden, notFound, pgCode } from "../lib/errors.js";
 import { requirePermission, tenantTx } from "../plugins/context.js";
+import { requestAnalysis } from "./customer-intelligence.js";
 
 const Id = z.object({ id: z.uuid() });
 const TICKET_TTL_MS = 60_000;
@@ -335,17 +336,25 @@ export async function meetingRoutes(base: FastifyInstance) {
     async (req) => {
       activeStreams.get(req.params.id)?.close(1000, "reunião encerrada");
       app.brains.drop(req.params.id);
-      return tenantTx(req, async (tx) => {
+      const ended = await tenantTx(req, async (tx) => {
         const m = await getMeeting(tx, req.params.id);
         assertCanEdit(req, m);
-        if (m.status === "ended" || m.status === "analyzed") return m;
+        if (m.status === "ended" || m.status === "analyzed") return { m, fresh: false };
         await tx
           .update(meetings)
           .set({ status: m.consentConfirmedAt ? "ended" : m.status, endedAt: sql`now()` })
           .where(eq(meetings.id, m.id));
         await audit(tx, req, { action: "meeting.ended", entityType: "meeting", entityId: m.id });
-        return getMeeting(tx, m.id);
+        return { m: await getMeeting(tx, m.id), fresh: true };
       });
+      // Modo Análise: dispara automaticamente quando há transcrição
+      if (ended.fresh && ended.m.status === "ended") {
+        await requestAnalysis(req, ended.m.id, { onlyIfTranscript: true }).catch((err: Error) =>
+          req.log.warn({ err: err.message }, "análise automática não iniciada"),
+        );
+        return tenantTx(req, (tx) => getMeeting(tx, ended.m.id));
+      }
+      return ended.m;
     },
   );
 

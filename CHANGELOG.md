@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Etapa 5 — Customer Intelligence
+
+- Análise pós-reunião versionada (automática ao encerrar): resumo, diagnóstico, objetivos, perguntas feitas e não respondidas, necessidades, feedbacks, recomendações, 8 indicadores com evidência e confiança.
+- Evidências sempre citadas do banco; conferência independente pelo Jev; análise básica explícita sem DeepSeek.
+- Customer Health explicável com pesos por tenant, suavização por histórico e travas por sinais de churn.
+- Churn Radar com recorrência entre reuniões, severidade prudente e receita em risco somente com receita informada.
+- Oportunidades de expansão sem valores inventados (sem duplicar entre reuniões); planos de ação com responsável, prazo, prioridade e status derivado “Atrasado”.
+- Telas de Health, Churn Radar, Expansão, Planos de Ação, análise na reunião, saúde no perfil do cliente e dashboard com dados reais.
+- Correções no motor em tempo real: análise de todas as falas novas entre ciclos e prioridade pela gravidade do sinal (intenção de cancelamento troca a sugestão na hora).
+
 ### Etapa 4 — Inteligência em tempo real
 
 - Motor de decisão (Camada 5): banco de candidatas (playbook + skill), checklist de cobertura, sinais de risco/oportunidade com evidência, ranking explicável, adaptação da pergunta pelo DeepSeek com fallback.

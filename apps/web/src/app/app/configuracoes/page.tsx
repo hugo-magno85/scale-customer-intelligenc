@@ -1,19 +1,21 @@
 "use client";
 
 import {
+  INDICATOR_LABELS,
   PERMISSIONS,
   type AuditLogEntry,
+  type HealthSettings,
   type Permission,
   type Role,
   type TenantMember,
 } from "@sci/contracts";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button, Card, ErrorText, Input, PageHeader } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { useApi } from "@/lib/use-api";
 
-type Tab = "members" | "roles" | "audit";
+type Tab = "members" | "roles" | "health" | "audit";
 
 function Members({ roles }: { roles: Role[] }) {
   const { can } = useSession();
@@ -183,6 +185,94 @@ function Roles({ roles, reload }: { roles: Role[]; reload: () => Promise<void> }
   );
 }
 
+function HealthWeights() {
+  const { can } = useSession();
+  const { data, error } = useApi<HealthSettings>("/settings/health");
+  const [s, setS] = useState<HealthSettings | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  useEffect(() => {
+    if (data) setS(data);
+  }, [data]);
+  if (error) return <ErrorText>{error}</ErrorText>;
+  if (!s) return null;
+  const editable = can("tenant.settings.manage");
+  const num = (v: string) => Number(v.replace(",", "."));
+  async function save() {
+    try {
+      setS(await api<HealthSettings>("/settings/health", { method: "PUT", json: s }));
+      setMsg({ ok: true, text: "Pesos salvos. Valem para as próximas análises." });
+    } catch (e) {
+      setMsg({ ok: false, text: (e as Error).message });
+    }
+  }
+  return (
+    <Card className="space-y-4">
+      <p className="text-sm text-ink-soft">
+        O Customer Health é a média ponderada dos indicadores com evidência em cada reunião. Indicadores sem
+        evidência ficam de fora e os pesos são redistribuídos. Risco de churn atua como trava da
+        classificação.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Object.entries(s.weights).map(([k, v]) => (
+          <Input
+            key={k}
+            label={`Peso: ${INDICATOR_LABELS[k as keyof typeof INDICATOR_LABELS]}`}
+            type="number"
+            min={0}
+            max={10}
+            step={0.5}
+            disabled={!editable}
+            value={v}
+            onChange={(e) => setS({ ...s, weights: { ...s.weights, [k]: num(e.target.value) } })}
+          />
+        ))}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Input
+          label="Saudável a partir de"
+          type="number"
+          min={1}
+          max={100}
+          disabled={!editable}
+          value={s.healthyMin}
+          onChange={(e) => setS({ ...s, healthyMin: num(e.target.value) })}
+        />
+        <Input
+          label="Atenção a partir de"
+          type="number"
+          min={0}
+          max={99}
+          disabled={!editable}
+          value={s.attentionMin}
+          onChange={(e) => setS({ ...s, attentionMin: num(e.target.value) })}
+        />
+        <Input
+          label="Peso do histórico (0–0,9)"
+          type="number"
+          min={0}
+          max={0.9}
+          step={0.05}
+          disabled={!editable}
+          value={s.historyWeight}
+          onChange={(e) => setS({ ...s, historyWeight: num(e.target.value) })}
+        />
+        <Input
+          label="Mínimo de indicadores"
+          type="number"
+          min={1}
+          max={6}
+          disabled={!editable}
+          value={s.minIndicators}
+          onChange={(e) => setS({ ...s, minIndicators: num(e.target.value) })}
+        />
+      </div>
+      {msg &&
+        (msg.ok ? <p className="text-sm text-healthy">{msg.text}</p> : <ErrorText>{msg.text}</ErrorText>)}
+      {editable && <Button onClick={() => void save()}>Salvar pesos</Button>}
+    </Card>
+  );
+}
+
 function Audit() {
   const { data, error } = useApi<AuditLogEntry[]>("/audit-logs?limit=100");
   if (error) return <ErrorText>{error}</ErrorText>;
@@ -207,6 +297,7 @@ export default function SettingsPage() {
   const tabs: { key: Tab; label: string; show: boolean }[] = [
     { key: "members", label: "Usuários", show: true },
     { key: "roles", label: "Papéis e permissões", show: true },
+    { key: "health", label: "Customer Health", show: can("analyses.read") },
     { key: "audit", label: "Auditoria", show: can("audit.read") },
   ];
   return (
@@ -231,6 +322,7 @@ export default function SettingsPage() {
       {roles.error && <ErrorText>{roles.error}</ErrorText>}
       {tab === "members" && roles.data && <Members roles={roles.data} />}
       {tab === "roles" && roles.data && <Roles roles={roles.data} reload={roles.reload} />}
+      {tab === "health" && <HealthWeights />}
       {tab === "audit" && <Audit />}
     </>
   );

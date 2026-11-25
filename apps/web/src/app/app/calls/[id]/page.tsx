@@ -3,10 +3,13 @@
 import {
   MEETING_PLATFORM_LABELS,
   MEETING_TYPE_LABELS,
+  type ActionTask,
   type Customer,
   type Meeting,
+  type MeetingAnalysis,
   type TranscriptSegment,
 } from "@sci/contracts";
+import { AnalysisView } from "@/components/analysis";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -33,6 +36,18 @@ export default function MeetingPage() {
   const tr = useApi<TranscriptSegment[]>(`/meetings/${id}/transcript`);
   const customers = useApi<{ items: Customer[] }>(can("customers.read") ? "/customers?limit=100" : null);
   const [err, setErr] = useState<string | null>(null);
+  const analysis = useApi<MeetingAnalysis | null>(can("analyses.read") ? `/meetings/${id}/analysis` : null);
+  const tasks = useApi<ActionTask[]>(can("action_plans.read") ? `/tasks?meetingId=${id}` : null);
+
+  async function reanalyze() {
+    try {
+      await api(`/meetings/${id}/analyze`, { method: "POST" });
+      setTimeout(() => void Promise.all([analysis.reload(), tasks.reload(), m.reload()]), 1500);
+      await analysis.reload();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
 
   async function link(customerId: string) {
     try {
@@ -117,10 +132,35 @@ export default function MeetingPage() {
           ))}
         </Card>
       )}
-      {d.status === "ended" && (
-        <p className="mt-6 text-sm text-ink-soft">
-          A análise pós-reunião (diagnóstico, indicadores, riscos e plano de ação) chega na Etapa 5.
-        </p>
+      {(d.status === "ended" || d.status === "analyzed") && can("analyses.read") && (
+        <>
+          <h2 className="mb-3 mt-8 text-lg font-semibold">Análise da reunião</h2>
+          <AnalysisView
+            a={analysis.data ?? null}
+            onReanalyze={() => void reanalyze()}
+            canAct={can("meetings.capture")}
+          />
+          {tasks.data && tasks.data.length > 0 && (
+            <>
+              <h2 className="mb-3 mt-8 text-lg font-semibold">Plano de ação</h2>
+              <Card className="space-y-2">
+                {tasks.data.map((t) => (
+                  <div key={t.id} className="flex flex-wrap justify-between gap-2 text-sm">
+                    <span className={t.status === "cancelled" ? "text-ink-soft line-through" : "font-medium"}>
+                      {t.title}
+                    </span>
+                    <span className="text-ink-soft">
+                      {t.ownerName ?? (t.responsibleParty === "customer" ? "Cliente" : "—")} ·{" "}
+                      {t.dueDate
+                        ? new Date(t.dueDate + "T00:00:00").toLocaleDateString("pt-BR")
+                        : "sem prazo"}
+                    </span>
+                  </div>
+                ))}
+              </Card>
+            </>
+          )}
+        </>
       )}
     </>
   );

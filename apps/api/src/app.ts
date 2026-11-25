@@ -10,6 +10,7 @@ import type { JobDispatcher } from "@sci/jobs";
 import type { DecisionProvider, ReasoningProvider, TranscriptionProvider } from "@sci/intelligence";
 import { BrainManager } from "./realtime/brains.js";
 import { intelligenceRoutes } from "./routes/intelligence.js";
+import { customerIntelligenceRoutes } from "./routes/customer-intelligence.js";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -152,6 +153,7 @@ export async function buildApp(config: Config, database: Database, services: App
       await v1.register(skillRoutes);
       await v1.register(meetingRoutes);
       await v1.register(intelligenceRoutes);
+      await v1.register(customerIntelligenceRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },

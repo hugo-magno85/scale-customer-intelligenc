@@ -274,3 +274,27 @@ describe("precedência do playbook", () => {
     expect(s.current!.playbookRef?.questionKey).toBe("uso");
   });
 });
+
+describe("falas acumuladas entre análises", () => {
+  it("detecta sinais em todas as falas novas, com a evidência correta de cada uma", async () => {
+    const b = new MeetingBrain(ctx());
+    await b.prepare();
+    b.onSegment(
+      say("customer", "Estamos usando pouco o sistema porque nossa equipe ainda não se adaptou."),
+      10_000,
+    );
+    b.onSegment(say("customer", "Se nada mudar, vamos pensar em cancelar."), 10_000);
+    b.onSegment(say("customer", "Por outro lado, a filial do Sul quer usar."), 10_000);
+    await b.analyze();
+    const sig = b.state().signals;
+    expect(sig.map((s) => s.key).sort()).toEqual(["cancellation_intent", "low_adoption", "new_area"]);
+    expect(sig.find((s) => s.key === "cancellation_intent")!.evidence.text).toContain("cancelar");
+    expect(sig.find((s) => s.key === "low_adoption")!.evidence.text).toContain("usando pouco");
+    // análise seguinte não reprocessa falas antigas
+    b.onSegment(say("internal", "Entendi."), 10_000);
+    await b.analyze();
+    expect(b.state().signals).toHaveLength(3);
+    // intenção de cancelamento não espera o intervalo mínimo: a sugestão muda na hora
+    expect(b.state().current!.evidence?.text).toContain("cancelar");
+  });
+});
