@@ -71,6 +71,7 @@ incluem a verificação de isolamento entre tenants.
 - [Skill de CS e Playbook Intelligence](docs/playbook-intelligence.md)
 - [Scale Assistant (extensão)](docs/scale-assistant.md)
 - [Inteligência em tempo real](docs/realtime-intelligence.md)
+- [Customer Intelligence](docs/customer-intelligence.md)
 - [Integrações](docs/integrations.md)
 - [Decisões técnicas (ADRs)](docs/adr)
 - [Como contribuir](CONTRIBUTING.md)

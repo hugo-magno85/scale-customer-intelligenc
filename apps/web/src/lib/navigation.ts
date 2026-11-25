@@ -62,7 +62,7 @@ export const NAV: NavItem[] = [
     label: "Customer Health",
     icon: HeartPulse,
     permission: "analyses.read",
-    stage: 5,
+    stage: 1,
     description: "Saúde de cada cliente com fatores explicáveis.",
   },
   {
@@ -70,7 +70,7 @@ export const NAV: NavItem[] = [
     label: "Churn Radar",
     icon: Radar,
     permission: "analyses.read",
-    stage: 5,
+    stage: 1,
     description: "Sinais de risco identificados nas reuniões.",
   },
   {
@@ -78,7 +78,7 @@ export const NAV: NavItem[] = [
     label: "Oportunidades de Expansão",
     icon: TrendingUp,
     permission: "analyses.read",
-    stage: 5,
+    stage: 1,
     description: "Upsell, cross-sell e novas necessidades.",
   },
   {
@@ -86,7 +86,7 @@ export const NAV: NavItem[] = [
     label: "Planos de Ação",
     icon: ClipboardList,
     permission: "action_plans.read",
-    stage: 5,
+    stage: 1,
     description: "Tarefas geradas a partir das análises.",
   },
   {
