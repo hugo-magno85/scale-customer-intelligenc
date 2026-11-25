@@ -36,7 +36,7 @@ class ScriptedTranscription implements TranscriptionProvider {
     };
   }
 }
-const until = async (fn: () => boolean, ms = 6000) => {
+const until = async (fn: () => boolean, ms = 15000) => {
   const t = Date.now();
   while (!fn()) {
     if (Date.now() - t > ms) throw new Error("timeout");

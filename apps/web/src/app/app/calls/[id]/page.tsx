@@ -10,6 +10,7 @@ import {
   type TranscriptSegment,
 } from "@sci/contracts";
 import { AnalysisView } from "@/components/analysis";
+import { CrmLinkPanel } from "@/components/crm-link";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -115,6 +116,9 @@ export default function MeetingPage() {
           Participantes: {d.participants.map((p) => p.displayName).join(", ")}
         </p>
       )}
+      <div className="mt-4">
+        <CrmLinkPanel meetingId={d.id} canEdit={can("meetings.capture")} />
+      </div>
       <h2 className="mb-3 mt-8 text-lg font-semibold">Transcrição</h2>
       {tr.data?.length === 0 && (
         <Empty title="Sem transcrição">A transcrição aparece aqui após a captura pelo Scale Assistant.</Empty>

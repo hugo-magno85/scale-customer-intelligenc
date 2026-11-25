@@ -4,6 +4,15 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Etapa 7 — CRM Integration Hub (fundação)
+
+- Pacote `@sci/crm-hub`: contrato universal, leitura de URL/ID por CRM (Bitrix24, Pipedrive, RD Station CRM, Zoho CRM), cliente HTTP resiliente (retry, Retry-After, rate limit) e idempotência.
+- Conexões por tenant com credencial cifrada; tela de Integrações.
+- Vínculo manual da reunião ao Deal/Card por URL ou ID, com histórico e permissão para alterar, na web e na extensão.
+- Nenhum CRM marcado como disponível até homologação com conta real.
+- Correção: o WebSocket de áudio só anuncia “pronto” depois de registrar os handlers (áudio inicial não é mais perdido).
+- Correção: variáveis de Deepgram, DeepSeek, Jev e do cofre de credenciais incluídas no Compose da API e do worker.
+
 ### Etapa 6 — Dashboard e relatórios
 
 - Visão geral filtrável (período, responsável, segmento, playbook, Customer Health, risco) com séries semanais, principais fatores de risco, médias dos indicadores e lista de clientes que compõem os números (drill-down).

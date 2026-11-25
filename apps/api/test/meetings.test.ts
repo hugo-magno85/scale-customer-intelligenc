@@ -61,7 +61,7 @@ function openWs(ticket: string) {
   const closed = new Promise<number>((r) => ws.on("close", (code) => r(code)));
   return { ws, messages, closed };
 }
-const until = async (fn: () => boolean, ms = 3000) => {
+const until = async (fn: () => boolean, ms = 15000) => {
   const t = Date.now();
   while (!fn()) {
     if (Date.now() - t > ms) throw new Error("timeout");

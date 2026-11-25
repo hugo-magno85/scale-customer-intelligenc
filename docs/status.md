@@ -4,17 +4,17 @@ Atualizado em 2026-11-25.
 
 ## Entregue (branch `develop`)
 
-| Etapa                            | Situação             | Validação                                                                                   |
-| -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------- |
-| 1. Fundação                      | ✅                   | Testes (RLS/isolamento, API), stack Docker completa subida localmente, E2E no navegador     |
-| 2. Skill de CS + Playbooks       | ✅                   | Testes; fluxo upload → fila → worker validado em containers                                 |
-| 3. Scale Assistant + transcrição | ✅                   | Testes; extensão real no Chromium; relay com cliente Deepgram real contra servidor simulado |
-| 4. Inteligência em tempo real    | ✅                   | Testes do motor + API + painel no navegador                                                 |
-| 5. Customer Intelligence         | ✅                   | Testes ponta a ponta; cliente DeepSeek real contra servidor simulado; telas                 |
-| 6. Dashboard e relatórios        | ✅                   | Testes; telas desktop e celular; exportação CSV                                             |
-| 7. CRM Integration Hub           | ⏸ aguardando insumos | —                                                                                           |
+| Etapa                            | Situação                                                    | Validação                                                                                                 |
+| -------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 1. Fundação                      | ✅                                                          | Testes (RLS/isolamento, API), stack Docker completa subida localmente, E2E no navegador                   |
+| 2. Skill de CS + Playbooks       | ✅                                                          | Testes; fluxo upload → fila → worker validado em containers                                               |
+| 3. Scale Assistant + transcrição | ✅                                                          | Testes; extensão real no Chromium; relay com cliente Deepgram real contra servidor simulado               |
+| 4. Inteligência em tempo real    | ✅                                                          | Testes do motor + API + painel no navegador                                                               |
+| 5. Customer Intelligence         | ✅                                                          | Testes ponta a ponta; cliente DeepSeek real contra servidor simulado; telas                               |
+| 6. Dashboard e relatórios        | ✅                                                          | Testes; telas desktop e celular; exportação CSV                                                           |
+| 7. CRM Integration Hub           | 🟡 fundação pronta; chamadas reais aguardam contas dos CRMs | Testes: cofre de credenciais, URL/ID, vínculo com histórico e permissões, isolamento, integração simulada |
 
-157 testes automatizados passando; lint, tipos, build, formatação e auditoria de dependências sem pendências.
+177 testes automatizados passando; lint, tipos, build, formatação e auditoria de dependências sem pendências.
 
 ## O que depende da Academia Scale
 

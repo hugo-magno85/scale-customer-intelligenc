@@ -535,6 +535,78 @@ export const actionTasks = pgTable("action_tasks", {
   completedAt: ts("completed_at"),
 });
 
+// --- 0007: CRM Integration Hub ---------------------------------------------
+export const crmConnections = pgTable("crm_connections", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  provider: text("provider", { enum: ["bitrix24", "pipedrive", "rdstation", "zoho"] }).notNull(),
+  label: text("label").notNull(),
+  externalAccountId: text("external_account_id").notNull(),
+  authType: text("auth_type", { enum: ["oauth", "api_token", "webhook"] }).notNull(),
+  encryptedCredentials: text("encrypted_credentials"),
+  status: text("status", { enum: ["pending", "active", "error", "disabled"] })
+    .notNull()
+    .default("pending"),
+  lastValidatedAt: ts("last_validated_at"),
+  lastError: text("last_error"),
+  createdBy: uuid("created_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const meetingCrmLinks = pgTable("meeting_crm_links", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  connectionId: uuid("connection_id"),
+  provider: text("provider", { enum: ["bitrix24", "pipedrive", "rdstation", "zoho"] }).notNull(),
+  externalAccountId: text("external_account_id"),
+  entityType: text("entity_type", { enum: ["deal", "company", "contact", "lead"] }).notNull(),
+  externalRecordId: text("external_record_id").notNull(),
+  recordUrl: text("record_url"),
+  customerId: uuid("customer_id"),
+  contactId: uuid("contact_id"),
+  recordSnapshot: jsonb("record_snapshot").$type<Record<string, unknown>>(),
+  validationStatus: text("validation_status", { enum: ["pending", "validated", "failed"] })
+    .notNull()
+    .default("pending"),
+  validationError: text("validation_error"),
+  validatedAt: ts("validated_at"),
+  origin: text("origin", { enum: ["automatic", "manual"] }).notNull(),
+  userId: uuid("user_id"),
+  active: boolean("active").notNull().default(true),
+  replacedAt: ts("replaced_at"),
+  replacedBy: uuid("replaced_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const integrationSyncs = pgTable("integration_syncs", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  connectionId: uuid("connection_id"),
+  operation: text("operation").notNull(),
+  idempotencyKey: text("idempotency_key").notNull(),
+  status: text("status", {
+    enum: ["pending", "running", "succeeded", "failed", "needs_approval", "cancelled"],
+  })
+    .notNull()
+    .default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  requestSummary: jsonb("request_summary").$type<Record<string, unknown>>().notNull().default({}),
+  resultSummary: jsonb("result_summary").$type<Record<string, unknown>>(),
+  error: text("error"),
+  requestedBy: uuid("requested_by"),
+  approvedBy: uuid("approved_by"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
 export const allTables = {
   tenants,
   users,
@@ -566,4 +638,7 @@ export const allTables = {
   expansionOpportunities,
   actionPlans,
   actionTasks,
+  crmConnections,
+  meetingCrmLinks,
+  integrationSyncs,
 };

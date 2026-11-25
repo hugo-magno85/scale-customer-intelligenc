@@ -10,3 +10,4 @@ export * from "./meetings.js";
 export * from "./intelligence.js";
 export * from "./analysis.js";
 export * from "./reports.js";
+export * from "./crm.js";

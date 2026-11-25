@@ -12,6 +12,7 @@ import { BrainManager } from "./realtime/brains.js";
 import { intelligenceRoutes } from "./routes/intelligence.js";
 import { customerIntelligenceRoutes } from "./routes/customer-intelligence.js";
 import { reportRoutes } from "./routes/reports.js";
+import { crmRoutes } from "./routes/crm.js";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -157,6 +158,7 @@ export async function buildApp(config: Config, database: Database, services: App
       await v1.register(intelligenceRoutes);
       await v1.register(customerIntelligenceRoutes);
       await v1.register(reportRoutes);
+      await v1.register(crmRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },
