@@ -57,6 +57,18 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Relay de áudio (Deepgram) e inteligência em tempo real (DeepSeek + Jev) rodam na API
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY:-}
+      DEEPGRAM_MODEL: ${DEEPGRAM_MODEL:-nova-3}
+      DEEPGRAM_LANGUAGE: ${DEEPGRAM_LANGUAGE:-pt-BR}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+      DEEPSEEK_MODEL_FAST: ${DEEPSEEK_MODEL_FAST:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      TYPESAFE_DEFAULT_MODEL: ${TYPESAFE_DEFAULT_MODEL:-}
+      # Cofre de credenciais dos CRMs (AES-256-GCM)
+      SCI_ENCRYPTION_KEYS: ${SCI_ENCRYPTION_KEYS:-}
+      SCI_ENCRYPTION_ACTIVE_KEY: ${SCI_ENCRYPTION_ACTIVE_KEY:-k1}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
@@ -81,6 +93,13 @@ services:
       DATABASE_URL: postgres://sci_app:${SCI_DB_APP_PASSWORD}@postgres:5432/${SCI_DB_NAME}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Interpretação de playbooks e análise pós-reunião
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-}
+      DEEPSEEK_MODEL_FAST: ${DEEPSEEK_MODEL_FAST:-}
+      DEEPSEEK_MODEL_REASONING: ${DEEPSEEK_MODEL_REASONING:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      TYPESAFE_DEFAULT_MODEL: ${TYPESAFE_DEFAULT_MODEL:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

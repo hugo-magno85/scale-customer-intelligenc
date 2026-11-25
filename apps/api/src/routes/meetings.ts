@@ -492,9 +492,6 @@ export async function meetingRoutes(base: FastifyInstance) {
         metadata: {},
       });
     });
-    send({ type: "ready", meetingId, sampleRate: STREAM_AUDIO.sampleRate, channels: STREAM_AUDIO.channels });
-    const initial = brain.state();
-    send({ type: "intelligence", state: initial.current ? initial : await brain.prepare() });
 
     let windowStart = Date.now();
     let windowBytes = 0;
@@ -541,5 +538,10 @@ export async function meetingRoutes(base: FastifyInstance) {
           .catch(() => undefined);
       })();
     });
+
+    // Só avisa "pronto" depois de registrar os handlers: áudio enviado logo após o aviso não se perde
+    send({ type: "ready", meetingId, sampleRate: STREAM_AUDIO.sampleRate, channels: STREAM_AUDIO.channels });
+    const initial = brain.state();
+    send({ type: "intelligence", state: initial.current ? initial : await brain.prepare() });
   });
 }

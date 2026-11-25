@@ -102,7 +102,7 @@ export const NAV: NavItem[] = [
     label: "Integrações",
     icon: Plug,
     permission: "integrations.read",
-    stage: 7,
+    stage: 1,
     description: "Bitrix24, Pipedrive, RD Station CRM e Zoho CRM.",
   },
   {

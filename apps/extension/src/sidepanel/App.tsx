@@ -18,6 +18,7 @@ import { WEB_URL } from "../shared/env.js";
 import type { DetectedMeeting, RuntimeMessage } from "../shared/messages.js";
 import { api, ApiError, getAuth, getTenant, logout, setTenant, wsUrl } from "./api.js";
 import { IntelligencePanel } from "./Intelligence.js";
+import { CrmLink } from "./CrmLink.js";
 
 type CaptureStatus = "idle" | "connecting" | "live" | "stopped" | "error";
 
@@ -278,6 +279,8 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
           <dd>{MEETING_TYPE_LABELS[meeting.meetingType]}</dd>
         </dl>
       </div>
+
+      <CrmLink meetingId={meeting.id} />
 
       {meeting.status !== "ended" && !meeting.consentConfirmedAt && (
         <div className="card stack warn">

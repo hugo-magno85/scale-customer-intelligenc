@@ -105,6 +105,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@sci/crm-hub':
+        specifier: workspace:*
+        version: link:../../packages/crm-hub
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
@@ -204,6 +207,15 @@ importers:
 
   packages/contracts:
     dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+
+  packages/crm-hub:
+    dependencies:
+      '@sci/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       zod:
         specifier: ^4.6.7
         version: 4.6.7

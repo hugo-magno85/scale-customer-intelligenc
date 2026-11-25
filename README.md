@@ -10,17 +10,17 @@ Componentes: plataforma web, API, worker e a extensão Chrome **Scale Assistant*
 
 ## Status
 
-| Etapa | Escopo                                                                                      | Situação                             |
-| ----- | ------------------------------------------------------------------------------------------- | ------------------------------------ |
-| 1     | Fundação: monorepo, banco com RLS, autenticação, multi-tenancy, RBAC, auditoria, CI, Docker | ✅ implementada e testada localmente |
-| 2     | Skill de CS + Playbook Intelligence                                                         | em andamento                         |
-| 3     | Scale Assistant (extensão MV3) + Deepgram                                                   | —                                    |
-| 4     | Inteligência em tempo real                                                                  | —                                    |
-| 5     | Customer Intelligence (Health, Churn, Expansão, Planos de Ação)                             | —                                    |
-| 6     | Dashboard e relatórios                                                                      | —                                    |
-| 7     | CRM Integration Hub (Bitrix24, Pipedrive, RD Station CRM, Zoho CRM)                         | —                                    |
+| Etapa | Escopo                                                                                      | Situação                                                                |
+| ----- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1     | Fundação: monorepo, banco com RLS, autenticação, multi-tenancy, RBAC, auditoria, CI, Docker | ✅ implementada                                                         |
+| 2     | Skill de CS + Playbook Intelligence                                                         | ✅ implementada; interpretação a validar com chave real do DeepSeek     |
+| 3     | Scale Assistant (extensão MV3) + Deepgram                                                   | ✅ implementada; captura a validar com reunião real e chave do Deepgram |
+| 4     | Inteligência em tempo real                                                                  | ✅ implementada; calibração com Jev/DeepSeek reais pendente             |
+| 5     | Customer Intelligence (Health, Churn, Expansão, Planos de Ação)                             | ✅ implementada; calibração com DeepSeek/Jev reais pendente             |
+| 6     | Dashboard e relatórios                                                                      | ✅ implementada                                                         |
+| 7     | CRM Integration Hub (Bitrix24, Pipedrive, RD Station CRM, Zoho CRM)                         | 🟡 fundação pronta; chamadas reais aguardam contas dos CRMs             |
 
-Detalhes no [plano da Fase A](docs/00-plano-fase-a.md) e no [CHANGELOG](CHANGELOG.md).
+Detalhes em [docs/status.md](docs/status.md), no [plano da Fase A](docs/00-plano-fase-a.md) e no [CHANGELOG](CHANGELOG.md).
 
 ## Estrutura
 
@@ -31,6 +31,7 @@ apps/worker      Jobs assíncronos (BullMQ + Redis)
 apps/extension   Scale Assistant — extensão Chrome MV3
 packages/contracts  Contratos Zod compartilhados (API, web, extensão)
 packages/db      Migrations SQL, políticas RLS, schema Drizzle, migrator
+packages/crm-hub  Integração com CRMs (contrato, URL/ID, HTTP resiliente)
 packages/security   Criptografia de credenciais (AES-256-GCM), senhas (Argon2id), tokens
 infrastructure   Dockerfiles, Compose, proxy, scripts de backup/deploy/rollback
 docs             Arquitetura, ADRs, instalação, deploy, segurança/LGPD
@@ -64,6 +65,7 @@ incluem a verificação de isolamento entre tenants.
 
 ## Documentação
 
+- [Status e próximos passos](docs/status.md)
 - [Arquitetura](docs/architecture.md)
 - [Segurança, multi-tenancy e LGPD](docs/security.md)
 - [Instalação](docs/installation.md)
@@ -72,6 +74,6 @@ incluem a verificação de isolamento entre tenants.
 - [Scale Assistant (extensão)](docs/scale-assistant.md)
 - [Inteligência em tempo real](docs/realtime-intelligence.md)
 - [Customer Intelligence](docs/customer-intelligence.md)
-- [Integrações](docs/integrations.md)
+- [Integrações e CRM Hub](docs/integrations.md)
 - [Decisões técnicas (ADRs)](docs/adr)
 - [Como contribuir](CONTRIBUTING.md)

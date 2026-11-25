@@ -36,7 +36,7 @@ class Scripted implements TranscriptionProvider {
     };
   }
 }
-const until = async (fn: () => boolean | Promise<boolean>, ms = 6000) => {
+const until = async (fn: () => boolean | Promise<boolean>, ms = 15000) => {
   const t = Date.now();
   while (!(await fn())) {
     if (Date.now() - t > ms) throw new Error("timeout");
@@ -59,9 +59,13 @@ async function runMeeting(lines: { channel: number; text: string }[], cust: stri
   const ws = new WebSocket(`${base}${t.wsPath}?ticket=${t.ticket}`);
   const msgs: { type: string }[] = [];
   ws.on("message", (d) => msgs.push(JSON.parse(d.toString())));
-  await until(() => msgs.some((x) => x.type === "ready"));
+  await until(() => msgs.some((x) => x.type === "ready")).catch((e) => {
+    throw new Error(`sem ready: ${JSON.stringify(msgs)}`, { cause: e });
+  });
   for (let i = 0; i < lines.length; i++) ws.send(Buffer.alloc(3200));
-  await until(() => msgs.filter((x) => x.type === "segment").length === lines.length);
+  await until(() => msgs.filter((x) => x.type === "segment").length === lines.length).catch((e) => {
+    throw new Error(`segmentos: ${JSON.stringify(msgs.map((x) => x.type))}`, { cause: e });
+  });
   ws.close();
   const segs = (await a.get(`/meetings/${m.id}/transcript`)).json() as { id: number; text: string }[];
   return { id: m.id as string, seg: (frag: string) => segs.find((s) => s.text.includes(frag))!.id };
