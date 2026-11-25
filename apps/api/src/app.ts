@@ -11,6 +11,7 @@ import type { DecisionProvider, ReasoningProvider, TranscriptionProvider } from 
 import { BrainManager } from "./realtime/brains.js";
 import { intelligenceRoutes } from "./routes/intelligence.js";
 import { customerIntelligenceRoutes } from "./routes/customer-intelligence.js";
+import { reportRoutes } from "./routes/reports.js";
 import Fastify, { type FastifyError } from "fastify";
 import {
   hasZodFastifySchemaValidationErrors,
@@ -89,6 +90,7 @@ export async function buildApp(config: Config, database: Database, services: App
     credentials: true,
     allowedHeaders: ["content-type", "authorization", "x-tenant-id"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    exposedHeaders: ["content-disposition"],
   });
   await app.register(cookie);
   await app.register(websocket, { options: { maxPayload: 128 * 1024 } });
@@ -154,6 +156,7 @@ export async function buildApp(config: Config, database: Database, services: App
       await v1.register(meetingRoutes);
       await v1.register(intelligenceRoutes);
       await v1.register(customerIntelligenceRoutes);
+      await v1.register(reportRoutes);
       if (config.NODE_ENV !== "production") v1.get("/openapi.json", async () => app.swagger());
     },
     { prefix: "/v1" },

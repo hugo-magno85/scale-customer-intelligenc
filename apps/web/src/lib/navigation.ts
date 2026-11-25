@@ -94,7 +94,7 @@ export const NAV: NavItem[] = [
     label: "Relatórios e Indicadores",
     icon: LineChart,
     permission: "reports.read",
-    stage: 6,
+    stage: 1,
     description: "Evolução da carteira e exportações.",
   },
   {

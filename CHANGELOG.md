@@ -4,6 +4,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Etapa 6 — Dashboard e relatórios
+
+- Visão geral filtrável (período, responsável, segmento, playbook, Customer Health, risco) com séries semanais, principais fatores de risco, médias dos indicadores e lista de clientes que compõem os números (drill-down).
+- Dashboard executivo com filtros em uma linha, gráficos com tooltip e links para o detalhe; layout validado em celular.
+- Exportações CSV (carteira, reuniões, indicadores, Churn Radar, oportunidades, planos de ação) em formato pt-BR (BOM, “;”, vírgula decimal), proteção contra injeção de fórmulas e registro em auditoria.
+
 ### Etapa 5 — Customer Intelligence
 
 - Análise pós-reunião versionada (automática ao encerrar): resumo, diagnóstico, objetivos, perguntas feitas e não respondidas, necessidades, feedbacks, recomendações, 8 indicadores com evidência e confiança.
