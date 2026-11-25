@@ -1,0 +1,11 @@
+# TLS automático (Let's Encrypt). Usado apenas se o servidor não tiver Nginx/proxy próprio.
+{$APP_DOMAIN} {
+  encode zstd gzip
+  header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  reverse_proxy web:3000
+}
+{$API_DOMAIN} {
+  encode zstd gzip
+  header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  reverse_proxy api:4000
+}

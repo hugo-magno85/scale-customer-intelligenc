@@ -1,0 +1,52 @@
+name: Release images
+# Publica imagens no GHCR a partir de tags vX.Y.Z (em main) ou de develop (homologação).
+# O deploy em si é feito no servidor com infrastructure/scripts/deploy.sh;
+# produção exige aprovação manual no environment "production".
+on:
+  push:
+    tags: ["v*.*.*"]
+    branches: [develop]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/') && 'production' || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Versão
+        id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"; echo "env=production" >> "$GITHUB_OUTPUT";
+          else echo "version=dev-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"; echo "env=staging" >> "$GITHUB_OUTPUT"; fi
+      - name: API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/node.Dockerfile
+          build-args: APP=api
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/sci-api:${{ steps.v.outputs.version }}
+      - name: Worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/node.Dockerfile
+          build-args: APP=worker
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/sci-worker:${{ steps.v.outputs.version }}
+      - name: Web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/web.Dockerfile
+          build-args: NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/sci-web:${{ steps.v.outputs.version }}-${{ steps.v.outputs.env }}

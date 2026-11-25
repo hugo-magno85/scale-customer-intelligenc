@@ -1,0 +1,52 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    env:
+      TEST_PG_ADMIN_URL: postgres://postgres:postgres@localhost:5432/postgres
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+      - name: Formatação
+        run: pnpm format:check
+      - name: Lint
+        run: pnpm lint
+      - name: Type checking
+        run: pnpm typecheck
+      - name: Build
+        run: pnpm build
+      - name: Validar migrations (banco limpo + reaplicação idempotente)
+        run: |
+          psql "$TEST_PG_ADMIN_URL" -v owner_password=ci_owner -v app_password=ci_app -v db_name=sci_ci -f infrastructure/scripts/db-bootstrap.sql
+          export DATABASE_OWNER_URL=postgres://sci_owner:ci_owner@localhost:5432/sci_ci
+          pnpm db:migrate
+          pnpm db:migrate | tee /tmp/second.txt
+          grep -q "banco já atualizado" /tmp/second.txt
+          pnpm db:check
+      - name: Testes (inclui isolamento multi-tenant com RLS)
+        run: pnpm test

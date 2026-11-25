@@ -1,0 +1,122 @@
+# Stack de homologação/produção. Cada ambiente roda como um projeto Compose
+# separado, com seu próprio arquivo de variáveis e volumes:
+#   docker compose -p sci-staging    --env-file env/staging.env    -f stack.yml up -d
+#   docker compose -p sci-production --env-file env/production.env -f stack.yml up -d
+# Nenhuma porta é publicada além do proxy (ou do bind local para um Nginx existente).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?}
+      SCI_DB_NAME: ${SCI_DB_NAME:?}
+      SCI_DB_OWNER_PASSWORD: ${SCI_DB_OWNER_PASSWORD:?}
+      SCI_DB_APP_PASSWORD: ${SCI_DB_APP_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../scripts/db-bootstrap.sql:/bootstrap/db-bootstrap.sql:ro
+      - ../docker/postgres-init.sh:/docker-entrypoint-initdb.d/10-sci.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      retries: 10
+    deploy: { resources: { limits: { memory: "${PG_MEMORY_LIMIT:-1g}" } } }
+    networks: [internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?}"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 10s
+    environment: { REDIS_PASSWORD: "${REDIS_PASSWORD}" }
+    deploy: { resources: { limits: { memory: 256m } } }
+    networks: [internal]
+
+  migrate:
+    image: ${REGISTRY:-ghcr.io/academia-scale}/sci-api:${SCI_VERSION:?}
+    command: ["node", "node_modules/@sci/db/dist/cli/migrate.js"]
+    environment:
+      DATABASE_OWNER_URL: postgres://sci_owner:${SCI_DB_OWNER_PASSWORD}@postgres:5432/${SCI_DB_NAME}
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: "no"
+    networks: [internal]
+
+  api:
+    image: ${REGISTRY:-ghcr.io/academia-scale}/sci-api:${SCI_VERSION:?}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${SCI_ENV:?}
+      DATABASE_URL: postgres://sci_app:${SCI_DB_APP_PASSWORD}@postgres:5432/${SCI_DB_NAME}
+      CORS_ORIGINS: ${PUBLIC_APP_URL:?}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      COOKIE_SECURE: "true"
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      retries: 5
+    deploy: { resources: { limits: { memory: "${API_MEMORY_LIMIT:-768m}" } } }
+    networks: [internal, edge]
+
+  worker:
+    image: ${REGISTRY:-ghcr.io/academia-scale}/sci-worker:${SCI_VERSION:?}
+    command: ["node", "dist/main.js"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://sci_app:${SCI_DB_APP_PASSWORD}@postgres:5432/${SCI_DB_NAME}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+    deploy: { resources: { limits: { memory: "${WORKER_MEMORY_LIMIT:-512m}" } } }
+    networks: [internal]
+
+  web:
+    image: ${REGISTRY:-ghcr.io/academia-scale}/sci-web:${SCI_VERSION:?}-${SCI_ENV}
+    restart: unless-stopped
+    deploy: { resources: { limits: { memory: 512m } } }
+    networks: [edge]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ["caddy"] # só sobe se o servidor não tiver proxy próprio
+    ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?}
+      API_DOMAIN: ${API_DOMAIN:?}
+    volumes:
+      - ../proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    networks: [edge]
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:
+networks:
+  internal: { internal: true }
+  edge: {}

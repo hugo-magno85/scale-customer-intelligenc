@@ -1,0 +1,28 @@
+# Alternativa para servidor que JÁ possui Nginx: um vhost novo, sem tocar nos existentes.
+# Requer publicar api/web em 127.0.0.1 (ver docs/deploy.md) e certificados via certbot.
+server {
+  listen 443 ssl http2;
+  server_name app.EXEMPLO.com.br;
+  ssl_certificate     /etc/letsencrypt/live/app.EXEMPLO.com.br/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/app.EXEMPLO.com.br/privkey.pem;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  location / { proxy_pass http://127.0.0.1:13000; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto https; }
+}
+server {
+  listen 443 ssl http2;
+  server_name api.EXEMPLO.com.br;
+  ssl_certificate     /etc/letsencrypt/live/api.EXEMPLO.com.br/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/api.EXEMPLO.com.br/privkey.pem;
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  client_max_body_size 30m;
+  location / {
+    proxy_pass http://127.0.0.1:14000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;      # WebSocket (áudio/sugestões em tempo real)
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_read_timeout 3600s;
+  }
+}

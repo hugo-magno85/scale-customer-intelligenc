@@ -1,0 +1,32 @@
+{
+  "name": "scale-customer-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scale Customer Intelligence — plataforma de IA para Customer Success da Academia Scale",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.15"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test --concurrency=1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "pnpm --filter @sci/db migrate",
+    "db:check": "pnpm --filter @sci/db check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^10.15.0",
+    "prettier": "^3.6.0",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.13",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^5.1.2"
+  }
+}

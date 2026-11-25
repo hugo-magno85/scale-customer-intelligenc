@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+.turbo/
+*.log
+.DS_Store
+# Segredos: nunca versionar
+.env
+.env.*
+!.env.example
+infrastructure/compose/env/*
+!infrastructure/compose/env/.gitkeep
+*.pem
+*.key
+backups/

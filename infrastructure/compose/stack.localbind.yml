@@ -1,0 +1,8 @@
+# Override para servidor que já tem Nginx: publica web e API apenas em 127.0.0.1,
+# para o vhost do Nginx (proxy/nginx-site.conf.example) encaminhar.
+# Portas configuráveis para não colidir com serviços existentes.
+services:
+  api:
+    ports: ["127.0.0.1:${API_LOCAL_PORT:-14000}:4000"]
+  web:
+    ports: ["127.0.0.1:${WEB_LOCAL_PORT:-13000}:3000"]
