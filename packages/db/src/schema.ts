@@ -10,6 +10,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uuid,
@@ -258,6 +259,72 @@ export const playbookCriteria = pgTable("playbook_criteria", {
   weight: numeric("weight", { precision: 4, scale: 2, mode: "number" }).notNull(),
 });
 
+// --- 0004: reuniões -----------------------------------------------------
+export const meetings = pgTable("meetings", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  ownerUserId: uuid("owner_user_id").notNull(),
+  customerId: uuid("customer_id"),
+  playbookVersionId: uuid("playbook_version_id"),
+  skillVersion: text("skill_version"),
+  platform: text("platform", { enum: ["google_meet", "zoom", "teams", "other"] }).notNull(),
+  externalRef: text("external_ref"),
+  title: text("title"),
+  meetingType: text("meeting_type").notNull().default("other"),
+  objective: text("objective"),
+  status: text("status", { enum: ["preparing", "live", "ended", "analyzed"] })
+    .notNull()
+    .default("preparing"),
+  consentMethod: text("consent_method", { enum: ["verbal_announcement", "written", "platform_notice"] }),
+  consentConfirmedAt: ts("consent_confirmed_at"),
+  consentConfirmedBy: uuid("consent_confirmed_by"),
+  startedAt: ts("started_at"),
+  endedAt: ts("ended_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+  updatedAt: ts("updated_at").notNull().defaultNow(),
+});
+
+export const meetingParticipants = pgTable("meeting_participants", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  displayName: text("display_name").notNull(),
+  email: text("email"),
+  role: text("role", { enum: ["internal", "customer", "unknown"] })
+    .notNull()
+    .default("unknown"),
+  contactId: uuid("contact_id"),
+  source: text("source", { enum: ["platform", "manual"] }).notNull(),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const meetingTranscriptSegments = pgTable("meeting_transcript_segments", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  channel: integer("channel").notNull(),
+  speaker: text("speaker", { enum: ["internal", "customer"] }).notNull(),
+  startMs: integer("start_ms").notNull(),
+  endMs: integer("end_ms").notNull(),
+  text: text("text").notNull(),
+  confidence: real("confidence"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
+export const meetingStreamTickets = pgTable("meeting_stream_tickets", {
+  tokenHash: text("token_hash").primaryKey(),
+  tenantId: uuid("tenant_id").notNull(),
+  meetingId: uuid("meeting_id").notNull(),
+  userId: uuid("user_id").notNull(),
+  expiresAt: ts("expires_at").notNull(),
+  usedAt: ts("used_at"),
+  createdAt: ts("created_at").notNull().defaultNow(),
+});
+
 export const allTables = {
   tenants,
   users,
@@ -274,4 +341,8 @@ export const allTables = {
   playbookDocuments,
   playbookQuestions,
   playbookCriteria,
+  meetings,
+  meetingParticipants,
+  meetingTranscriptSegments,
+  meetingStreamTickets,
 };

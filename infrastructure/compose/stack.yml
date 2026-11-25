@@ -71,7 +71,7 @@ services:
       interval: 15s
       retries: 5
     deploy: { resources: { limits: { memory: "${API_MEMORY_LIMIT:-768m}" } } }
-    networks: [internal, edge]
+    networks: [internal, edge, egress]
 
   worker:
     image: ${REGISTRY:-ghcr.io/academia-scale}/sci-worker:${SCI_VERSION:?}

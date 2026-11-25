@@ -1,5 +1,11 @@
 import { createDatabase } from "@sci/db";
-import { deepSeekConfigFromEnv, DeepSeekProvider, jevFromEnv } from "@sci/intelligence";
+import {
+  deepgramConfigFromEnv,
+  DeepgramProvider,
+  deepSeekConfigFromEnv,
+  DeepSeekProvider,
+  jevFromEnv,
+} from "@sci/intelligence";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { bullmqDispatcher, inlineDispatcher } from "./lib/jobs.js";
@@ -11,7 +17,9 @@ const queue = config.REDIS_URL ? bullmqDispatcher(config.REDIS_URL) : null;
 const jobs =
   queue ??
   inlineDispatcher({ database, reasoning: ds ? new DeepSeekProvider(ds) : null, decisions: jevFromEnv() });
-const app = await buildApp(config, database, jobs);
+const dg = deepgramConfigFromEnv();
+if (!dg) console.warn("DEEPGRAM_API_KEY ausente: captura de reuniões ficará indisponível");
+const app = await buildApp(config, database, { jobs, transcription: dg ? new DeepgramProvider(dg) : null });
 
 const shutdown = async (signal: string) => {
   app.log.info({ signal }, "encerrando");

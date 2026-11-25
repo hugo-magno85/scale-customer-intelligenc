@@ -1,6 +1,7 @@
 "use client";
 
-import type { Contact, Customer } from "@sci/contracts";
+import { MEETING_TYPE_LABELS, type Contact, type Customer, type Meeting } from "@sci/contracts";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button, Card, Empty, ErrorText, Input, PageHeader } from "@/components/ui";
@@ -13,6 +14,7 @@ export default function CustomerPage() {
   const { can } = useSession();
   const { data: c, error } = useApi<Customer>(`/customers/${id}`);
   const contacts = useApi<Contact[]>(`/customers/${id}/contacts`);
+  const meetings = useApi<Meeting[]>(`/meetings?customerId=${id}&limit=100`);
   const [err, setErr] = useState<string | null>(null);
 
   async function addContact(e: FormEvent<HTMLFormElement>) {
@@ -95,9 +97,29 @@ export default function CustomerPage() {
         </Card>
       )}
       <h2 className="mb-3 mt-8 text-lg font-semibold">Linha do tempo</h2>
-      <Empty title="Sem reuniões registradas">
-        As reuniões, análises e planos de ação deste cliente aparecerão aqui em ordem cronológica.
-      </Empty>
+      {meetings.data?.length === 0 && (
+        <Empty title="Sem reuniões registradas">
+          As reuniões, análises e planos de ação deste cliente aparecerão aqui em ordem cronológica.
+        </Empty>
+      )}
+      {meetings.data && meetings.data.length > 0 && (
+        <ol className="relative space-y-4 border-l border-line pl-5">
+          {meetings.data.map((m) => (
+            <li key={m.id}>
+              <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-brand" />
+              <div className="text-xs text-ink-soft">
+                {new Date(m.startedAt ?? m.createdAt).toLocaleString("pt-BR")}
+              </div>
+              <Link href={`/app/calls/${m.id}`} className="font-medium hover:text-brand">
+                {m.title ?? MEETING_TYPE_LABELS[m.meetingType]}
+              </Link>
+              <div className="text-sm text-ink-soft">
+                {m.playbookName ? `Playbook ${m.playbookName} v${m.playbookVersionNumber}` : "Sem playbook"}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
     </>
   );
 }
