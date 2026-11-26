@@ -9,9 +9,12 @@ let failed = false;
 for (const app of process.argv.slice(2)) {
   const pkg = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));
   const deps = new Set(Object.keys(pkg.dependencies ?? {}));
-  const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+  const walk = (d) =>
+    readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
   for (const file of walk(join(app, "src")).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f))) {
-    for (const m of readFileSync(file, "utf8").matchAll(/^import\s+(?!type\b)[^'"]*from\s+["']([^."'][^"']*)["']/gm)) {
+    for (const m of readFileSync(file, "utf8").matchAll(
+      /^import\s+(?!type\b)[^'"]*from\s+["']([^."'][^"']*)["']/gm,
+    )) {
       const spec = m[1];
       if (spec.startsWith("node:") || builtinModules.includes(spec)) continue;
       const name = spec.startsWith("@") ? spec.split("/").slice(0, 2).join("/") : spec.split("/")[0];
