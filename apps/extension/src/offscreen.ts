@@ -28,7 +28,13 @@ async function start(streamId: string, wsUrl: string) {
   current = await startPipeline(
     { tab, mic, wsUrl, workletUrl: "audio-worklet.js", playThrough: true },
     {
-      onReady: () => status("live"),
+      onReady: () =>
+        status(
+          "live",
+          mic
+            ? undefined
+            : "Capturando só o áudio da reunião: o microfone não está autorizado, então a sua voz não será transcrita.",
+        ),
       onServerMessage: (payload) =>
         chrome.runtime
           .sendMessage({ type: "capture:server-message", payload } satisfies RuntimeMessage)

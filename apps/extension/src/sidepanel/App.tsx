@@ -180,6 +180,21 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
   const [err, setErr] = useState<string | null>(null);
   const [intel, setIntel] = useState<MeetingIntelligence | null>(null);
   const [needsPick, setNeedsPick] = useState(false);
+  const [micState, setMicState] = useState<PermissionState | "unknown">("unknown");
+  useEffect(() => {
+    let perm: PermissionStatus | null = null;
+    navigator.permissions
+      .query({ name: "microphone" as PermissionName })
+      .then((p) => {
+        perm = p;
+        setMicState(p.state);
+        p.onchange = () => setMicState(p.state);
+      })
+      .catch(() => undefined);
+    return () => {
+      if (perm) perm.onchange = null;
+    };
+  }, []);
   const local = useRef<{ stop: () => Promise<void> } | null>(null);
 
   useEffect(() => {
@@ -399,6 +414,21 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
           )}
           <button className="btn danger" onClick={() => void end()}>
             Encerrar reunião
+          </button>
+        </div>
+      )}
+      {meeting.status !== "ended" && micState !== "granted" && micState !== "unknown" && (
+        <div className="card stack warn">
+          <div className="title">Autorize o microfone</div>
+          <p>
+            Sem o microfone, a sua voz não é transcrita — só a dos outros participantes. Autorize uma única
+            vez e depois pause e inicie a captura de novo.
+          </p>
+          <button
+            className="btn"
+            onClick={() => void chrome.tabs.create({ url: chrome.runtime.getURL("permission.html") })}
+          >
+            Autorizar microfone
           </button>
         </div>
       )}
