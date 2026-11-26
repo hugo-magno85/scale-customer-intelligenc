@@ -13,8 +13,9 @@ import {
   type StreamTicket,
   type TranscriptSegment,
 } from "@sci/contracts";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { WEB_URL } from "../shared/env.js";
+import { getMic, startPipeline } from "../shared/pipeline.js";
 import type { DetectedMeeting, RuntimeMessage } from "../shared/messages.js";
 import { api, ApiError, getAuth, getTenant, logout, setTenant, wsUrl } from "./api.js";
 import { IntelligencePanel } from "./Intelligence.js";
@@ -178,6 +179,8 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
   const [interim, setInterim] = useState<{ speaker: string; text: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [intel, setIntel] = useState<MeetingIntelligence | null>(null);
+  const [needsPick, setNeedsPick] = useState(false);
+  const local = useRef<{ stop: () => Promise<void> } | null>(null);
 
   useEffect(() => {
     api<TranscriptSegment[]>(`/meetings/${meeting.id}/transcript`)
@@ -187,6 +190,17 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
       .then(setIntel)
       .catch(() => undefined);
     const listener = (msg: RuntimeMessage) => {
+      handle(msg);
+    };
+    chrome.runtime.onMessage.addListener(listener);
+    return () => {
+      chrome.runtime.onMessage.removeListener(listener);
+      void local.current?.stop();
+    };
+  }, [meeting.id]);
+
+  function handle(msg: RuntimeMessage) {
+    {
       if (msg.type === "capture:status") {
         setStatus(msg.status);
         setStatusMsg(msg.message ?? null);
@@ -200,10 +214,8 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
         else if (p.type === "error") setErr(p.message);
         else if (p.type === "intelligence") setIntel(p.state);
       }
-    };
-    chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
-  }, [meeting.id]);
+    }
+  }
 
   // Sem captura nesta aba (ex.: outra pessoa/dispositivo capturando), mantém a inteligência atualizada
   useEffect(() => {
@@ -237,6 +249,10 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
         tabId,
         wsUrl: wsUrl(t.wsPath, t.ticket),
       } satisfies RuntimeMessage)) as { ok: boolean; error?: string };
+      if (r?.error === "NEEDS_TAB_PICK") {
+        setNeedsPick(true);
+        return;
+      }
       if (!r?.ok) throw new Error(r?.error ?? "Não foi possível iniciar a captura");
       setStatus("connecting");
     } catch (e) {
@@ -244,8 +260,66 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
     }
   }
 
+  // Alternativa: o usuário escolhe a aba da reunião na janela do Chrome (compartilhando o áudio da guia).
+  // Precisa ser chamada diretamente pelo clique (gesto do usuário).
+  async function pickTabCapture() {
+    setErr(null);
+    let display: MediaStream;
+    try {
+      display = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        // Sugere a aba atual e o compartilhamento de áudio (dicas suportadas pelo Chrome)
+        preferCurrentTab: false,
+        selfBrowserSurface: "exclude",
+        systemAudio: "include",
+      } as DisplayMediaStreamOptions);
+    } catch {
+      setErr("Compartilhamento cancelado.");
+      return;
+    }
+    display.getVideoTracks().forEach((t) => t.stop());
+    if (display.getAudioTracks().length === 0) {
+      setErr('Nenhum áudio compartilhado. Escolha a aba da reunião e ative "Compartilhar áudio da guia".');
+      return;
+    }
+    try {
+      setStatus("connecting");
+      setNeedsPick(false);
+      const mic = await getMic();
+      if (!mic) setStatusMsg("Microfone não autorizado: só a voz dos participantes será transcrita.");
+      const t = await api<StreamTicket>(`/meetings/${meeting.id}/stream-ticket`, { json: {} });
+      local.current = await startPipeline(
+        {
+          tab: new MediaStream(display.getAudioTracks()),
+          mic,
+          wsUrl: wsUrl(t.wsPath, t.ticket),
+          workletUrl: chrome.runtime.getURL("audio-worklet.js"),
+          playThrough: false,
+        },
+        {
+          onReady: () => handle({ type: "capture:status", status: "live" }),
+          onServerMessage: (payload) => handle({ type: "capture:server-message", payload }),
+          onClosed: (reason) => {
+            local.current = null;
+            handle(
+              reason
+                ? { type: "capture:status", status: "error", message: reason }
+                : { type: "capture:status", status: "stopped" },
+            );
+          },
+        },
+      );
+    } catch (e) {
+      display.getTracks().forEach((t) => t.stop());
+      setStatus("error");
+      setErr((e as Error).message);
+    }
+  }
+
   async function stopCapture() {
-    await chrome.runtime.sendMessage({ type: "sci:stop-capture" } satisfies RuntimeMessage);
+    if (local.current) await local.current.stop();
+    else await chrome.runtime.sendMessage({ type: "sci:stop-capture" } satisfies RuntimeMessage);
     setStatus("stopped");
   }
 
@@ -325,6 +399,18 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
           )}
           <button className="btn danger" onClick={() => void end()}>
             Encerrar reunião
+          </button>
+        </div>
+      )}
+      {needsPick && !capturing && (
+        <div className="card stack warn">
+          <div className="title">Escolha a aba da reunião</div>
+          <p>
+            O Chrome não liberou a captura automática. Clique abaixo, selecione a aba da reunião e ative{" "}
+            <b>Compartilhar áudio da guia</b>. Mantenha este painel aberto durante a captura.
+          </p>
+          <button className="btn" onClick={() => void pickTabCapture()}>
+            Escolher aba da reunião
           </button>
         </div>
       )}

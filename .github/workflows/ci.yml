@@ -47,7 +47,7 @@ jobs:
           psql "$TEST_PG_ADMIN_URL" -v owner_password=ci_owner -v app_password=ci_app -v db_name=sci_ci -f infrastructure/scripts/db-bootstrap.sql
           export DATABASE_OWNER_URL=postgres://sci_owner:ci_owner@localhost:5432/sci_ci
           pnpm db:migrate
-          pnpm db:migrate | tee /tmp/second.txt
+          pnpm db:migrate 2>&1 | tee /tmp/second.txt
           grep -q "banco já atualizado" /tmp/second.txt
           pnpm db:check
       - name: Testes (inclui isolamento multi-tenant com RLS)

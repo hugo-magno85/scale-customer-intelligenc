@@ -61,7 +61,7 @@ chrome.runtime.onMessage.addListener((msg: RuntimeMessage, sender, sendResponse)
       } catch (err) {
         const raw = (err as Error).message;
         const friendly = /not been invoked|activeTab/i.test(raw)
-          ? "Para capturar, clique no ícone do Scale Assistant na barra do Chrome estando na aba da reunião e tente novamente."
+          ? "NEEDS_TAB_PICK"
           : /Chrome pages cannot be captured/i.test(raw)
             ? "Esta aba não pode ser capturada."
             : raw;
