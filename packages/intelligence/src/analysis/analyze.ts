@@ -472,14 +472,18 @@ export async function analyzeMeeting(
 
   const indicators: IndicatorResult[] = INDICATORS.map((k) => {
     const x = (o.indicators ?? []).find((i) => i.indicator === k);
-    const evidence = quotes(x?.evidence, byId);
+    // Indicadores descrevem o cliente: só falas do cliente sustentam uma nota
+    const evidence = quotes(x?.evidence, byId).filter((q) => q.speaker === "customer");
     if (!x || x.level === null || !evidence.length) {
       return {
         indicator: k,
         score: null,
         classification: null,
         confidence: null,
-        rationale: x?.rationale || "Sem evidência suficiente nesta reunião.",
+        rationale:
+          x && x.level !== null && !evidence.length
+            ? "Sem falas do cliente que sustentem esta nota nesta reunião."
+            : x?.rationale || "Sem evidência suficiente nesta reunião.",
         evidence: [],
       };
     }

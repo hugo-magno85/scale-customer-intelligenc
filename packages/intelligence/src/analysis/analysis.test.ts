@@ -187,6 +187,23 @@ describe("análise pós-reunião", () => {
     expect(out.warnings.join(" ")).toContain("descartado");
   });
 
+  it("fala do profissional (CS) não sustenta nota de indicador do cliente", async () => {
+    const out = await analyzeMeeting(input(), {
+      reasoning: llm({
+        indicators: [
+          { indicator: "satisfaction", level: 1, confidence: 0.8, rationale: "x", evidence: [10] },
+          { indicator: "adoption", level: 1, confidence: 0.8, rationale: "x", evidence: [10, 11] },
+        ],
+      }),
+    });
+    const sat = out.indicators.find((i) => i.indicator === "satisfaction")!;
+    expect(sat.score).toBeNull();
+    expect(sat.rationale).toContain("falas do cliente");
+    expect(out.indicators.find((i) => i.indicator === "adoption")!.evidence.map((e) => e.segmentId)).toEqual([
+      11,
+    ]);
+  });
+
   it("conferência do Jev descarta conclusão sem sustentação", async () => {
     const decisions: DecisionProvider = {
       name: "j",
