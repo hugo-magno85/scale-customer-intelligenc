@@ -9,6 +9,9 @@ BASE="${SCI_BASE:-/opt/academia-scale/scale-customer-intelligence}"
 DEST="$BASE/backups/$ENV_NAME"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 COMPOSE=(docker compose -p "sci-$ENV_NAME" --env-file "$ENV_FILE" -f "$DIR/stack.yml")
+# Ignora variáveis já exportadas no terminal com os mesmos nomes do arquivo de configuração:
+# no Compose, o ambiente do shell tem prioridade sobre --env-file e mascararia a versão nova.
+while IFS='=' read -r _k _; do [[ "$_k" =~ ^[A-Z_][A-Z0-9_]*$ ]] && unset "$_k"; done < "$ENV_FILE"
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 if ! "${COMPOSE[@]}" ps --status running --services 2>/dev/null | grep -qx postgres; then

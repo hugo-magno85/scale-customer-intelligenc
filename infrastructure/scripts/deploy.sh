@@ -12,6 +12,9 @@ SCRIPTS="$(cd "$(dirname "$0")" && pwd)"
 DIR="$(cd "$SCRIPTS/../compose" && pwd)"
 ENV_FILE="$DIR/env/$ENV_NAME.env"
 [[ -f "$ENV_FILE" ]] || { echo "falta $ENV_FILE — rode init-env.sh primeiro" >&2; exit 1; }
+# Ignora variáveis já exportadas no terminal com os mesmos nomes do arquivo de configuração:
+# no Compose, o ambiente do shell tem prioridade sobre --env-file e mascararia a versão nova.
+while IFS='=' read -r _k _; do [[ "$_k" =~ ^[A-Z_][A-Z0-9_]*$ ]] && unset "$_k"; done < "$ENV_FILE"
 FILES=(-f "$DIR/stack.yml")
 [[ "${SCI_LOCALBIND:-1}" == "1" ]] && FILES+=(-f "$DIR/stack.localbind.yml")
 COMPOSE=(docker compose -p "sci-$ENV_NAME" --env-file "$ENV_FILE" "${FILES[@]}")
