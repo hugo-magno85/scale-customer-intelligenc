@@ -9,8 +9,8 @@ O Scale usa a pasta `/opt/academia-scale/scale-customer-intelligence` e as porta
    `ssh-keygen -t ed25519 -N "" -f ~/.ssh/sci_deploy -C scale-ci-deploy && cat ~/.ssh/sci_deploy.pub`
    e cole a linha em _Settings → Deploy keys → Add deploy key_ (sem permissão de escrita).
 2. **Variáveis** em _Settings → Secrets and variables → Actions → Variables_:
-   `PUBLIC_API_URL=https://api-homolog-scale.academiascale.com.br` e
-   `PUBLIC_APP_URL=https://homolog-scale.academiascale.com.br`.
+   `PUBLIC_API_URL=https://api-ci.academiascale.com.br` e
+   `PUBLIC_APP_URL=https://ci.academiascale.com.br`.
 3. **Gerar as imagens**: _Actions → Release images → Run workflow_ (branch `develop`).
    Ao terminar, anote a versão `dev-xxxxxxx` mostrada no passo “Versão”.
 4. **Token para baixar imagens**: _github.com/settings/tokens → Generate new token (classic)_,
@@ -19,10 +19,10 @@ O Scale usa a pasta `/opt/academia-scale/scale-customer-intelligence` e as porta
 ## Parte 2 — DNS e HTTPS
 
 1. No gerenciador de DNS de `academiascale.com.br`, crie dois registros **A** apontando para o IP do servidor:
-   `homolog-scale` e `api-homolog-scale`.
+   `ci` e `api-ci`.
 2. No painel do servidor, crie um **proxy reverso / site** para cada domínio, com SSL (Let's Encrypt):
-   - `homolog-scale.academiascale.com.br` → `http://127.0.0.1:13000`
-   - `api-homolog-scale.academiascale.com.br` → `http://127.0.0.1:14000` (habilite **WebSocket** se houver a opção)
+   - `ci.academiascale.com.br` → `http://127.0.0.1:13000`
+   - `api-ci.academiascale.com.br` → `http://127.0.0.1:14000` (habilite **WebSocket** se houver a opção)
 
 ## Parte 3 — Servidor (terminal)
 
@@ -35,7 +35,7 @@ cd /opt/academia-scale/scale-customer-intelligence
 GIT_SSH_COMMAND="ssh -i ~/.ssh/sci_deploy -o StrictHostKeyChecking=accept-new" git clone -b develop git@github.com:hugo-magno85/scale-customer-intelligenc.git staging
 
 # 3. configuração com senhas geradas automaticamente (não sobrescreve se já existir)
-cd staging && ./infrastructure/scripts/init-env.sh staging homolog-scale.academiascale.com.br api-homolog-scale.academiascale.com.br hugo-magno85
+cd staging && ./infrastructure/scripts/init-env.sh staging ci.academiascale.com.br api-ci.academiascale.com.br hugo-magno85
 
 # 4. login no registro de imagens (usuário: hugo-magno85 · senha: o token read:packages)
 docker login ghcr.io -u hugo-magno85
@@ -54,8 +54,8 @@ Guarde uma cópia segura de `infrastructure/compose/env/staging.env` (contém as
 
 ## Parte 4 — Conferir
 
-- `https://api-homolog-scale.academiascale.com.br/health/ready` → `{"status":"ok"...}`
-- `https://homolog-scale.academiascale.com.br` → tela de login; entre com o superadmin e crie o primeiro tenant em **Superadmin**.
+- `https://api-ci.academiascale.com.br/health/ready` → `{"status":"ok"...}`
+- `https://ci.academiascale.com.br` → tela de login; entre com o superadmin e crie o primeiro tenant em **Superadmin**.
 
 ## Chaves de IA (quando tiver)
 
