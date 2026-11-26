@@ -20,6 +20,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [tenantId, setTenant] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -31,7 +32,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setTenant(valid?.tenantId ?? null);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) router.replace("/login");
-      else throw err;
+      else
+        setLoadError(
+          err instanceof ApiError
+            ? err.message
+            : "Não foi possível conectar ao servidor da plataforma. Verifique sua conexão e tente novamente em instantes.",
+        );
     }
   }, [router]);
 
@@ -62,7 +68,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   if (!value) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-ink-soft">Carregando…</div>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center text-sm text-ink-soft">
+        {loadError ? (
+          <>
+            <p className="max-w-md text-risk">{loadError}</p>
+            <button
+              className="rounded-lg border border-line bg-white px-3 py-2 text-ink"
+              onClick={() => {
+                setLoadError(null);
+                void refresh();
+              }}
+            >
+              Tentar novamente
+            </button>
+          </>
+        ) : (
+          "Carregando…"
+        )}
+      </div>
     );
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
