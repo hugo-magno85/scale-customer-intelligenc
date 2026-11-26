@@ -7,7 +7,8 @@ RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /repo
 # A URL pública da API é embutida no bundle do navegador no momento do build.
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG NEXT_PUBLIC_EXTENSION_IDS=""
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} NEXT_PUBLIC_EXTENSION_IDS=${NEXT_PUBLIC_EXTENSION_IDS}
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm turbo run build --filter=@sci/web...
