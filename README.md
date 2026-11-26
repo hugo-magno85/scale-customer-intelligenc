@@ -74,6 +74,7 @@ incluem a verificação de isolamento entre tenants.
 - [Scale Assistant (extensão)](docs/scale-assistant.md)
 - [Inteligência em tempo real](docs/realtime-intelligence.md)
 - [Customer Intelligence](docs/customer-intelligence.md)
+- [BI Executivo: indicadores, fontes e comparativos](docs/bi-executivo.md)
 - [Integrações e CRM Hub](docs/integrations.md)
 - [Decisões técnicas (ADRs)](docs/adr)
 - [Como contribuir](CONTRIBUTING.md)

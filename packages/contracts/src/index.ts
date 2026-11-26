@@ -11,3 +11,4 @@ export * from "./intelligence.js";
 export * from "./analysis.js";
 export * from "./reports.js";
 export * from "./crm.js";
+export * from "./bi.js";

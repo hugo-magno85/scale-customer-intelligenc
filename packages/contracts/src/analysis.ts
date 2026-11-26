@@ -145,10 +145,26 @@ export const HealthSettings = z
     historyWeight: z.number().min(0).max(0.9).default(0.3),
     /** Mínimo de indicadores com evidência para calcular a nota. */
     minIndicators: z.number().int().min(1).max(6).default(3),
+    /** Faixa "excelente" (só visual, dentro de "saudável"). Ausente: 80, ou o meio do caminho até 100 se "saudável" ≥ 80. */
+    excellentMin: z.number().min(1).max(100).optional(),
   })
   .refine((s) => s.attentionMin < s.healthyMin, {
     message: "faixa de atenção deve ser menor que a de saudável",
+  })
+  .refine((s) => s.excellentMin === undefined || s.excellentMin > s.healthyMin, {
+    message: "faixa excelente deve ser maior que a de saudável",
   });
+
+/** Faixas efetivas (0–100) usadas pelo velocímetro e pelas classificações. */
+export function healthBands(s: HealthSettings) {
+  return {
+    attentionMin: s.attentionMin,
+    healthyMin: s.healthyMin,
+    excellentMin:
+      s.excellentMin ??
+      (s.healthyMin < 80 ? 80 : Math.round((s.healthyMin + (100 - s.healthyMin) / 2) * 10) / 10),
+  };
+}
 export type HealthSettings = z.infer<typeof HealthSettings>;
 
 export const ChurnSignal = z.object({

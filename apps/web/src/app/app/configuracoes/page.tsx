@@ -247,6 +247,18 @@ function HealthWeights() {
           onChange={(e) => setS({ ...s, attentionMin: num(e.target.value) })}
         />
         <Input
+          label="Excelente a partir de (BI)"
+          type="number"
+          min={1}
+          max={100}
+          placeholder="padrão: 80"
+          disabled={!editable}
+          value={s.excellentMin ?? ""}
+          onChange={(e) =>
+            setS({ ...s, excellentMin: e.target.value === "" ? undefined : num(e.target.value) })
+          }
+        />
+        <Input
           label="Peso do histórico (0–0,9)"
           type="number"
           min={0}

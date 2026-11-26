@@ -5,12 +5,37 @@
   --color-ink: #0f1729;
   --color-ink-soft: #475569;
   --color-line: #e5e8ef;
-  --color-canvas: #f6f7fb;
+  --color-canvas: #f5f7fc;
   --color-brand: #3b4cf5;
   --color-brand-soft: #eef0ff;
   --color-healthy: #12a150;
   --color-attention: #d98a06;
   --color-risk: #d6334a;
+  /* BI executivo */
+  --color-bi-blue: #2563eb;
+  --color-bi-green: #16b978;
+  --color-bi-orange: #f59e0b;
+  --color-bi-red: #e5485d;
+  --color-bi-gray: #94a3b8;
+}
+
+@keyframes bi-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.bi-rise {
+  animation: bi-rise 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bi-rise {
+    animation: none;
+  }
 }
 
 body {

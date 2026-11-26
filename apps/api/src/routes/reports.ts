@@ -14,12 +14,8 @@ function range(f: ReportFilters) {
   return { from, to };
 }
 
-/**
- * Conjunto de clientes do filtro (CTE `fc`) e de reuniões do período (CTE `fm`).
- * Tudo sob RLS: só dados do tenant atual entram.
- */
-function scope(f: ReportFilters): SQL {
-  const { from, to } = range(f);
+/** CTEs `lh` (último snapshot de cada cliente) e `fc` (clientes ativos do filtro). Tudo sob RLS. */
+export function customerScope(f: ReportFilters): SQL {
   const customerFilter = sql.join(
     [
       sql`c.status = 'active'`,
@@ -41,7 +37,6 @@ function scope(f: ReportFilters): SQL {
     ],
     sql` AND `,
   );
-  const customerScoped = !!(f.ownerUserId || f.segment || f.health || f.risk || f.playbookId);
   return sql`
     lh AS (
       SELECT DISTINCT ON (h.customer_id) h.customer_id, h.score, h.classification
@@ -51,7 +46,17 @@ function scope(f: ReportFilters): SQL {
       SELECT c.id, c.name, c.segment, c.owner_user_id, c.mrr_cents, lh.score, lh.classification
       FROM customers c LEFT JOIN lh ON lh.customer_id = c.id
       WHERE ${customerFilter}
-    ),
+    )`;
+}
+
+export const isCustomerScoped = (f: ReportFilters) =>
+  !!(f.ownerUserId || f.segment || f.health || f.risk || f.playbookId);
+
+/** `fc` + reuniões do período (CTE `fm`). */
+function scope(f: ReportFilters): SQL {
+  const { from, to } = range(f);
+  const customerScoped = isCustomerScoped(f);
+  return sql`${customerScope(f)},
     fm AS (
       SELECT m.* FROM meetings m
       LEFT JOIN playbook_versions v ON v.id = m.playbook_version_id

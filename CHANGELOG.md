@@ -4,6 +4,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### BI Executivo
+
+- Novo dashboard executivo (`/app/dashboard`, `GET /v1/reports/bi`):
+  - velocímetro de Customer Health (0–10) com as faixas do tenant e comparativo com o mês anterior e o ano anterior;
+  - 10 KPIs com variação, sparkline e tooltip de origem;
+  - gráficos de evolução com período de comparação e linha de tendência;
+  - distribuição da carteira, movimentação de risco, inteligência de churn (fatores, receita em risco e recuperada, clientes prioritários), inteligência de expansão, desempenho dos planos e média dos indicadores.
+- Atalhos de período (mês atual e anterior, mesmo mês do ano anterior, ano atual e anterior, 30/90 dias, 12 meses, personalizado), comparação com o período anterior ou o ano anterior, e "Limpar filtros".
+- Drill-down dos KPIs e da distribuição até a ficha do cliente.
+- Integridade: valores "ao fim do período" reconstruídos dos snapshots; nada estimado; "histórico insuficiente" quando não há base para comparar. Ver [docs/bi-executivo.md](docs/bi-executivo.md).
+- Configuração opcional da faixa "excelente" do velocímetro.
+- Extensão: botão "Nova reunião" no topo do painel; autorização do microfone pelo painel; captura liberada pelo clique no ícone; correção da captura presa à aba.
+- Análise: notas de indicador só com fala do cliente como evidência.
+
 ### Etapa 7 — CRM Integration Hub (fundação)
 
 - Pacote `@sci/crm-hub`: contrato universal, leitura de URL/ID por CRM (Bitrix24, Pipedrive, RD Station CRM, Zoho CRM), cliente HTTP resiliente (retry, Retry-After, rate limit) e idempotência.
