@@ -47,6 +47,20 @@ async function ensureOffscreen() {
   });
 }
 
+// Uma captura anterior (pausa, painel fechado, versão antiga) pode ainda estar presa à aba:
+// encerra o documento offscreen, que libera todos os fluxos, e tenta de novo.
+async function getStreamId(tabId: number): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
+    } catch (err) {
+      if (!/active stream/i.test((err as Error).message) || attempt >= 4) throw err;
+      await chrome.offscreen.closeDocument().catch(() => undefined);
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+    }
+  }
+}
+
 chrome.runtime.onMessage.addListener((msg: RuntimeMessage, sender, sendResponse) => {
   if (msg.type === "sci:meeting-detected" && sender.tab?.id !== undefined) {
     detected.set(sender.tab.id, msg.meeting);
@@ -59,7 +73,7 @@ chrome.runtime.onMessage.addListener((msg: RuntimeMessage, sender, sendResponse)
   if (msg.type === "sci:start-capture") {
     void (async () => {
       try {
-        const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: msg.tabId });
+        const streamId = await getStreamId(msg.tabId);
         await ensureOffscreen();
         const start: RuntimeMessage = { type: "offscreen:start", streamId, wsUrl: msg.wsUrl };
         await chrome.runtime.sendMessage(start);
@@ -70,7 +84,9 @@ chrome.runtime.onMessage.addListener((msg: RuntimeMessage, sender, sendResponse)
           ? "NEEDS_TAB_PICK"
           : /Chrome pages cannot be captured/i.test(raw)
             ? "Esta aba não pode ser capturada."
-            : raw;
+            : /active stream/i.test(raw)
+              ? "A aba ainda está presa a uma captura anterior. Recarregue a aba da reunião (F5), clique no ícone do Scale Assistant e inicie de novo."
+              : raw;
         sendResponse({ ok: false, error: friendly });
       }
     })();
@@ -78,9 +94,11 @@ chrome.runtime.onMessage.addListener((msg: RuntimeMessage, sender, sendResponse)
   }
   if (msg.type === "sci:stop-capture") {
     const stop: RuntimeMessage = { type: "offscreen:stop" };
-    chrome.runtime.sendMessage(stop).catch(() => undefined);
-    void chrome.offscreen.closeDocument().catch(() => undefined);
-    sendResponse({ ok: true });
-    return;
+    void (async () => {
+      await chrome.runtime.sendMessage(stop).catch(() => undefined);
+      await chrome.offscreen.closeDocument().catch(() => undefined);
+      sendResponse({ ok: true });
+    })();
+    return true;
   }
 });
