@@ -343,6 +343,21 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
     setMeeting(await api<Meeting>(`/meetings/${meeting.id}/end`, { json: {} }));
   }
 
+  // Sai desta reunião para preparar outra. Se ela ainda estiver aberta, encerra antes
+  // (gera a análise com o que foi transcrito) — com confirmação.
+  async function newMeeting() {
+    if (meeting.status !== "ended") {
+      if (!window.confirm("Encerrar a reunião atual e preparar uma nova?")) return;
+      try {
+        await end();
+      } catch (e) {
+        setErr((e as Error).message);
+        return;
+      }
+    }
+    setMeeting(null);
+  }
+
   const capturing = status === "live" || status === "connecting";
   return (
     <>
@@ -355,6 +370,11 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
             <span className="pill">{meeting.status === "ended" ? "Encerrada" : "Preparada"}</span>
           )}
         </div>
+        {!capturing && (
+          <button className="btn ghost" onClick={() => void newMeeting()}>
+            Nova reunião
+          </button>
+        )}
         <dl className="kv">
           <dt>Cliente</dt>
           <dd>{meeting.customerName ?? "Não vinculado"}</dd>
@@ -477,11 +497,6 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
           )}
         </div>
       </div>
-      {meeting.status === "ended" && (
-        <button className="btn ghost" onClick={() => setMeeting(null)}>
-          Nova reunião
-        </button>
-      )}
     </>
   );
 }
