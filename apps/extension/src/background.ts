@@ -3,7 +3,13 @@ import type { DetectedMeeting, RuntimeMessage, StoredAuth } from "./shared/messa
 
 const detected = new Map<number, DetectedMeeting>();
 
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => undefined);
+// O clique no ícone abre o painel E concede activeTab na aba da reunião — sem isso o Chrome recusa
+// chrome.tabCapture ("Extension has not been invoked"). Por isso abrimos o painel manualmente.
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() => undefined);
+chrome.action.onClicked.addListener((tab) => {
+  // Precisa ser síncrono dentro do gesto do usuário
+  if (tab.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
+});
 
 chrome.tabs.onRemoved.addListener((tabId) => detected.delete(tabId));
 
