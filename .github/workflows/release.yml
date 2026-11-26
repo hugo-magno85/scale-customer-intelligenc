@@ -6,6 +6,7 @@ on:
   push:
     tags: ["v*.*.*"]
     branches: [develop]
+  workflow_dispatch:
 permissions:
   contents: read
   packages: write
@@ -60,6 +61,8 @@ jobs:
         with:
           context: .
           file: infrastructure/docker/web.Dockerfile
-          build-args: NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL }}
+            NEXT_PUBLIC_EXTENSION_IDS=${{ vars.EXTENSION_IDS }}
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/sci-web:${{ steps.v.outputs.version }}-${{ steps.v.outputs.env }}

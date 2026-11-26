@@ -21,6 +21,7 @@
     "@fastify/swagger": "^9.9.5",
     "@fastify/websocket": "^11.3.7",
     "@sci/contracts": "workspace:*",
+    "@sci/crm-hub": "workspace:*",
     "@sci/cs-skill": "workspace:*",
     "@sci/db": "workspace:*",
     "@sci/intelligence": "workspace:*",
@@ -37,7 +38,6 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@sci/crm-hub": "workspace:*",
     "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.2",
     "pino-pretty": "^13.2.0"

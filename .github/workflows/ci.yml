@@ -32,6 +32,8 @@ jobs:
           cache: pnpm
       - name: Instalar dependências
         run: pnpm install --frozen-lockfile
+      - name: Dependências de produção (imagens Docker)
+        run: node infrastructure/scripts/check-prod-deps.mjs apps/api apps/worker packages/contracts packages/db packages/security packages/cs-skill packages/playbooks packages/intelligence packages/jobs packages/crm-hub
       - name: Formatação
         run: pnpm format:check
       - name: Lint
