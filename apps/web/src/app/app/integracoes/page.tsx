@@ -132,12 +132,18 @@ export default function IntegrationsPage() {
               </select>
             </label>
             <Input
-              label={adding === "bitrix24" ? "URL do webhook de entrada" : "Credencial (opcional agora)"}
+              label={
+                adding === "bitrix24"
+                  ? "URL do webhook de entrada"
+                  : adding === "pipedrive"
+                    ? "Token de API pessoal"
+                    : "Credencial (opcional agora)"
+              }
               name="secret"
               type="password"
               autoComplete="off"
               minLength={8}
-              required={adding === "bitrix24"}
+              required={adding === "bitrix24" || adding === "pipedrive"}
               placeholder={adding === "bitrix24" ? "https://suaempresa.bitrix24.com.br/rest/1/…/" : undefined}
             />
             {adding === "bitrix24" && (
@@ -145,6 +151,14 @@ export default function IntegrationsPage() {
                 No Bitrix24: Recursos para desenvolvedores → Outros → Webhook de entrada, com as permissões
                 CRM, Tarefas e Usuários. A URL fica guardada cifrada e não aparece de novo. Depois de salvar,
                 clique em “Validar conexão”.
+              </p>
+            )}
+            {adding === "pipedrive" && (
+              <p className="text-xs text-ink-soft sm:col-span-2 lg:col-span-4">
+                No Pipedrive: clique na sua foto → Configurações pessoais → API e copie o “token de API
+                pessoal”. Em “Identificação da conta”, use o endereço da empresa (ex.: suaempresa de
+                suaempresa.pipedrive.com). O token fica guardado cifrado e não aparece de novo. Depois de
+                salvar, clique em “Validar conexão”.
               </p>
             )}
             <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
@@ -177,7 +191,7 @@ export default function IntegrationsPage() {
                   : ""}
                 {c.lastError ? ` · ${c.lastError}` : ""}
               </div>
-              {can("integrations.manage") && c.provider === "bitrix24" && (
+              {can("integrations.manage") && (c.provider === "bitrix24" || c.provider === "pipedrive") && (
                 <div className="mt-3 rounded-lg border border-line bg-canvas/60 p-3 text-sm">
                   <label className="flex items-center gap-2 font-medium">
                     <input
@@ -185,13 +199,21 @@ export default function IntegrationsPage() {
                       checked={c.settings.autoPublish}
                       onChange={(e) => void act(c.id, "", { settings: { autoPublish: e.target.checked } })}
                     />
-                    Enviar automaticamente ao card após a análise da reunião
+                    Enviar automaticamente ao CRM após a análise da reunião
                   </label>
                   <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-ink-soft">
                     {(
                       [
-                        ["publishComment", "Comentário com o resumo"],
-                        ["publishTasks", "Tarefas do plano de ação"],
+                        [
+                          "publishComment",
+                          c.provider === "pipedrive" ? "Nota com o resumo" : "Comentário com o resumo",
+                        ],
+                        [
+                          "publishTasks",
+                          c.provider === "pipedrive"
+                            ? "Atividades do plano de ação"
+                            : "Tarefas do plano de ação",
+                        ],
                         ["publishFields", "Campos: Health, risco e data"],
                       ] as const
                     ).map(([k, label]) => (

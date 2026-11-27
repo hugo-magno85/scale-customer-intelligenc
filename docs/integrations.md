@@ -81,3 +81,26 @@ Ao concluir a análise de uma reunião com registro vinculado, o worker envia ao
   - uma nova versão da análise (reanálise) gera um novo envio.
 - Na reunião (Calls → reunião → Vincular registro do CRM) aparecem o status, o que foi gravado e os avisos, com o botão "Enviar análise ao CRM" ou "Reenviar o que falhou".
 - O worker precisa de `SCI_ENCRYPTION_KEYS` (a mesma chave da API) e de `PUBLIC_APP_URL`. As duas já estão no `stack.yml`.
+
+## Pipedrive — token de API (em homologação)
+
+Implementado em `packages/crm-hub/src/pipedrive.ts` a partir do cliente oficial
+([pipedrive/client-nodejs](https://github.com/pipedrive/client-nodejs)), que é gerado da especificação OpenAPI.
+
+- **Autenticação**: token de API pessoal no cabeçalho `x-api-token`.
+  - O host é fixo (`api.pipedrive.com`), então o token nunca vai para outro endereço.
+  - A conta é o subdomínio da empresa. `GET /v1/users/me` confere se `company_domain` é o mesmo da conexão.
+- **Consulta**:
+  - `GET /api/v2/deals/{id}`, `/organizations/{id}` e `/persons/{id}`;
+  - `GET /v1/leads/{id}`, com ID em formato UUID;
+  - `GET /v1/users/{id}` para o responsável.
+- **Envio**:
+  - nota: `POST /v1/notes`, em HTML escapado;
+  - atividades do tipo `task`: `POST /api/v2/activities`, uma por ação interna, com prazo e dono;
+  - campos do negócio: `GET/POST /api/v2/dealFields` para achar ou criar os campos pelo nome, e `PATCH /api/v2/deals/{id}` com `custom_fields`.
+
+  Criar campos exige que o usuário do token seja administrador. Sem isso, a nota e as atividades seguem normalmente e a reunião mostra um aviso.
+
+- **Erros e limites**:
+  - 401 (token), 403 (permissão), 404 (registro) e 402 (plano) viram mensagens claras;
+  - em 429 ou 5xx, espera e repete, respeitando `Retry-After`.

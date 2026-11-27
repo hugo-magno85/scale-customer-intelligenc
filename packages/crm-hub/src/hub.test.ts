@@ -113,11 +113,11 @@ describe("registro de CRMs", () => {
     const st = Object.fromEntries(listProviders().map((p) => [p.key, p.status]));
     expect(st).toEqual({
       bitrix24: "homologation",
-      pipedrive: "awaiting_credentials",
+      pipedrive: "homologation",
       rdstation: "awaiting_credentials",
       zoho: "awaiting_credentials",
     });
-    expect(crmClientFactory("pipedrive")).toBeNull();
+    expect(crmClientFactory("zoho")).toBeNull();
     expect(crmClientFactory("bitrix24")).not.toBeNull();
   });
 });

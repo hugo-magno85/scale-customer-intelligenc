@@ -4,6 +4,14 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Pipedrive (em homologação)
+
+- Cliente por token de API pessoal:
+  - validação com conferência da empresa;
+  - consulta de negócio, organização, pessoa e lead;
+  - envio da análise como nota, atividades do plano e campos do negócio.
+- Cadastro na tela de Integrações com validação do formato do token.
+
 ### Bitrix24 (em homologação)
 
 - Envio da análise ao card após a reunião:

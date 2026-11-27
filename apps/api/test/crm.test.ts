@@ -50,12 +50,12 @@ beforeAll(async () => {
 afterAll(async () => ctx?.close());
 
 describe("conexões de CRM", () => {
-  it("lista os 4 CRMs: Bitrix24 em homologação, os demais aguardando", async () => {
+  it("lista os 4 CRMs: Bitrix24 e Pipedrive em homologação, os demais aguardando", async () => {
     const p = (await client(ctx, admin, tenant).get("/crm/providers")).json();
     expect(p.map((x: { key: string }) => x.key)).toEqual(["bitrix24", "pipedrive", "rdstation", "zoho"]);
     expect(p.map((x: { status: string }) => x.status)).toEqual([
       "homologation",
-      "awaiting_credentials",
+      "homologation",
       "awaiting_credentials",
       "awaiting_credentials",
     ]);
@@ -67,11 +67,11 @@ describe("conexões de CRM", () => {
       label: "Pipedrive principal",
       externalAccountId: "acme",
       authType: "api_token",
-      secret: "token-super-secreto-123",
+      secret: "0123456789abcdef0123456789abcdef01234567",
     });
     expect(r.statusCode).toBe(201);
     expect(r.json()).toMatchObject({ hasCredentials: true, status: "pending" });
-    expect(r.body).not.toContain("token-super-secreto");
+    expect(r.body).not.toContain("0123456789abcdef0123");
     const c = new pg.Client({ connectionString: ctx.db.ownerUrl });
     await c.connect();
     await c.query("BEGIN");
@@ -83,8 +83,8 @@ describe("conexões de CRM", () => {
     await c.query("COMMIT");
     await c.end();
     expect(row.encrypted_credentials).toMatch(/^v1:k1:/);
-    expect(row.encrypted_credentials).not.toContain("token-super-secreto");
-    expect(auditRows[0].m).not.toContain("token-super-secreto");
+    expect(row.encrypted_credentials).not.toContain("0123456789abcdef0123");
+    expect(auditRows[0].m).not.toContain("0123456789abcdef0123");
   });
 
   it("Bitrix24: só aceita a URL do webhook de entrada do próprio portal", async () => {
@@ -111,8 +111,16 @@ describe("conexões de CRM", () => {
   });
 
   it("validar conexão sem integração homologada é recusado com explicação", async () => {
-    const conns = (await client(ctx, admin, tenant).get("/crm/connections")).json();
-    const r = await client(ctx, admin, tenant).post(`/crm/connections/${conns[0].id}/validate`);
+    const z = (
+      await client(ctx, admin, tenant).post("/crm/connections", {
+        provider: "rdstation",
+        label: "RD validação",
+        externalAccountId: "rd-validacao",
+        authType: "api_token",
+        secret: "rd-token-12345678",
+      })
+    ).json();
+    const r = await client(ctx, admin, tenant).post(`/crm/connections/${z.id}/validate`);
     expect(r.statusCode).toBe(409);
     expect(r.json().error.message).toContain("homologada");
   });
@@ -206,7 +214,7 @@ describe("vínculo manual da reunião ao registro do CRM", () => {
   it("com integração homologada: valida a conexão e consulta o registro", async () => {
     registerCrmClient("pipedrive", ({ secret }) => ({
       validateConnection: async () => {
-        if (secret !== "token-super-secreto-123") throw new Error("credenciais recusadas");
+        if (secret !== "0123456789abcdef0123456789abcdef01234567") throw new Error("credenciais recusadas");
         return { accountName: "ACME" };
       },
       getRecord: async (_e, id) => ({

@@ -55,7 +55,8 @@ const META: Record<CrmProviderKey, Omit<CrmProviderInfo, "key" | "label" | "stat
     referenceHint: "URL do negócio (…/crm/deal/details/123/) ou ID numérico",
   },
   pipedrive: {
-    authTypes: ["oauth", "api_token"],
+    // Token de API pessoal (uma empresa). OAuth fica para quando houver app no Marketplace.
+    authTypes: ["api_token"],
     entityTypes: ["deal", "company", "contact", "lead"],
     referenceHint: "URL do deal (…pipedrive.com/deal/123) ou ID numérico",
   },

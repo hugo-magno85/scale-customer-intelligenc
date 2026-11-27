@@ -79,7 +79,7 @@ beforeAll(async () => {
       label: "CRM",
       externalAccountId: "acme",
       authType: "api_token",
-      secret: "token-super-secreto-123",
+      secret: "0123456789abcdef0123456789abcdef01234567",
     })
   ).json().id;
   expect((await a.post(`/crm/connections/${connId}/validate`)).json().status).toBe("active");

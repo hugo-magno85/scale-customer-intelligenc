@@ -15,6 +15,7 @@ import {
   credentialFormatError,
   crmClientFactory,
   listProviders,
+  normalizePipedriveAccount,
   parseCrmReference,
   ReferenceError,
 } from "@sci/crm-hub";
@@ -204,16 +205,18 @@ export async function crmRoutes(base: FastifyInstance) {
     async (req, reply) => {
       // Bitrix24: a conta é o endereço do portal (sem protocolo/caminho), igual ao que vem na URL do negócio
       const b =
-        req.body.provider === "bitrix24"
-          ? {
-              ...req.body,
-              externalAccountId: req.body.externalAccountId
-                .trim()
-                .toLowerCase()
-                .replace(/^https?:\/\//, "")
-                .replace(/\/.*$/, ""),
-            }
-          : req.body;
+        req.body.provider === "pipedrive"
+          ? { ...req.body, externalAccountId: normalizePipedriveAccount(req.body.externalAccountId) }
+          : req.body.provider === "bitrix24"
+            ? {
+                ...req.body,
+                externalAccountId: req.body.externalAccountId
+                  .trim()
+                  .toLowerCase()
+                  .replace(/^https?:\/\//, "")
+                  .replace(/\/.*$/, ""),
+              }
+            : req.body;
       const formatError = b.secret
         ? credentialFormatError(b.provider, b.authType, b.externalAccountId, b.secret)
         : null;
