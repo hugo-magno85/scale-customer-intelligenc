@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
+import { copyFile, mkdtemp, readdir } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import pg from "pg";
 import { createDatabase, type Database } from "./client.js";
-import { migrate } from "./migrator.js";
+import { migrate, MIGRATIONS_DIR } from "./migrator.js";
 
 /**
  * Cria um banco PostgreSQL descartável, aplica as migrations como sci_owner
@@ -28,7 +31,11 @@ function withDb(url: string, db: string, user?: string, password?: string) {
   return u.toString();
 }
 
-export async function createTestDb(): Promise<TestDb> {
+/**
+ * Banco de teste novo, já migrado. `until` aplica as migrations só até aquele arquivo (inclusive),
+ * para testar uma migration sobre dados gravados por versões anteriores.
+ */
+export async function createTestDb(opts: { until?: string } = {}): Promise<TestDb> {
   const adminUrl = process.env.TEST_PG_ADMIN_URL;
   if (!adminUrl) throw new Error("TEST_PG_ADMIN_URL não definida");
   const name = `sci_test_${randomBytes(4).toString("hex")}`;
@@ -47,7 +54,12 @@ export async function createTestDb(): Promise<TestDb> {
   }
   const ownerUrl = withDb(adminUrl, name, "sci_owner", OWNER_PW);
   const appUrl = withDb(adminUrl, name, "sci_app", APP_PW);
-  await migrate(ownerUrl);
+  if (opts.until) {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "sci-mig-"));
+    for (const f of (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith(".sql") && f <= opts.until!))
+      await copyFile(path.join(MIGRATIONS_DIR, f), path.join(tmp, f));
+    await migrate(ownerUrl, { dir: tmp });
+  } else await migrate(ownerUrl);
   const app = createDatabase(appUrl, { max: 4 });
   return {
     name,

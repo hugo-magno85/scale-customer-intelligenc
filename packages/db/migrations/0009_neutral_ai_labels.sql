@@ -1,5 +1,12 @@
 -- Fornecedores de IA não aparecem para os clientes: a origem do sinal passa a ser "ai" (motor da
 -- plataforma) e avisos já gravados com nomes de fornecedores são reescritos de forma neutra.
+--
+-- As tabelas usam FORCE ROW LEVEL SECURITY, que vale também para o dono (usuário das migrations):
+-- sem contexto de tenant, os UPDATEs abaixo não enxergariam nenhuma linha. O FORCE é suspenso só
+-- durante esta migration (mesma transação) e reativado no fim; o sci_app continua sob RLS o tempo todo.
+ALTER TABLE meeting_live_signals NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE meeting_analyses NO FORCE ROW LEVEL SECURITY;
+ALTER TABLE playbook_versions NO FORCE ROW LEVEL SECURITY;
 DO $$
 DECLARE c text;
 BEGIN
@@ -29,3 +36,7 @@ UPDATE playbook_versions SET processing_warnings = ARRAY(SELECT pg_temp.sci_neut
   WHERE array_to_string(processing_warnings, ' ') ~ '(DeepSeek|Jev|TypeSafe|Deepgram)';
 UPDATE playbook_versions SET processing_error = pg_temp.sci_neutral(processing_error)
   WHERE processing_error ~ '(DeepSeek|Jev|TypeSafe|Deepgram)';
+
+ALTER TABLE meeting_live_signals FORCE ROW LEVEL SECURITY;
+ALTER TABLE meeting_analyses FORCE ROW LEVEL SECURITY;
+ALTER TABLE playbook_versions FORCE ROW LEVEL SECURITY;
