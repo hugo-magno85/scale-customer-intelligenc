@@ -10,7 +10,7 @@ import {
 const TOKEN = "0123456789abcdef0123456789abcdef01234567";
 type Reply = { status?: number; body: unknown; headers?: Record<string, string> };
 
-function fake(routes: Record<string, Reply | Reply[]>) {
+function fake(routes: Record<string, Reply | Reply[]>, account = "acme") {
   const calls: { key: string; url: string; headers: Record<string, string>; body: unknown }[] = [];
   const fn = vi.fn(async (url: string, init: RequestInit) => {
     const u = new URL(url);
@@ -31,7 +31,7 @@ function fake(routes: Record<string, Reply | Reply[]>) {
   });
   return {
     calls,
-    c: createPipedriveClient("acme", TOKEN, {
+    c: createPipedriveClient(account, TOKEN, {
       fetch: fn as unknown as typeof fetch,
       sleep: async () => {},
       limiter: new RateLimiter(1000, 1000),
@@ -210,5 +210,37 @@ describe("Pipedrive — envio", () => {
     });
     expect(r.fields).toEqual([]);
     expect(r.warnings[0]).toMatch(/administrador/);
+  });
+
+  it("API v2 de campos indisponível na conta: usa a v1 para listar e criar", async () => {
+    const { c, calls } = fake(
+      {
+        "GET /api/v2/dealFields": { status: 404, body: { success: false, error: "Not found" } },
+        "GET /v1/dealFields": ok([{ key: "k_health", name: "Customer Health (Scale) 0–10" }]),
+        "POST /api/v2/dealFields": [
+          { status: 404, body: { success: false, error: "Not found" } },
+          { status: 404, body: { success: false, error: "Not found" } },
+        ],
+        "POST /v1/dealFields": [ok({ key: "k_risk" }), ok({ key: "k_last" })],
+        "PATCH /api/v2/deals/42": ok({ id: 42 }),
+      },
+      "gamma",
+    );
+    const r = await c.updateSummaryFields!("deal", "42", {
+      healthScore10: 7.1,
+      riskLabel: "Médio",
+      analyzedAt: "2026-11-27T12:00:00.000Z",
+    });
+    expect(r).toEqual({
+      fields: ["Customer Health (Scale) 0–10", "Risco de churn (Scale)", "Última análise (Scale)"],
+      warnings: [],
+    });
+    expect(calls.filter((x) => x.key === "POST /v1/dealFields").map((x) => x.body)).toEqual([
+      { name: "Risco de churn (Scale)", field_type: "varchar" },
+      { name: "Última análise (Scale)", field_type: "date" },
+    ]);
+    expect(calls.find((x) => x.key === "PATCH /api/v2/deals/42")!.body).toEqual({
+      custom_fields: { k_health: 7.1, k_risk: "Médio", k_last: "2026-11-27" },
+    });
   });
 });

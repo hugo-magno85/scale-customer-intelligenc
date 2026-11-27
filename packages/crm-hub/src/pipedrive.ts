@@ -286,24 +286,48 @@ export function createPipedriveClient(
       let codes = fieldCodes.get(company);
       if (!codes || PIPEDRIVE_SUMMARY_FIELDS.some((x) => !codes![x.key])) {
         codes = { ...(codes ?? {}) };
+        // A API v2 de campos não está liberada em todas as contas: em falha (exceto permissão), usa a v1.
+        // O `key` da v1 é o mesmo código usado em `custom_fields` no PATCH /api/v2/deals/{id}.
+        const isPermission = (e: unknown) => (e as CrmHttpError).status === 403;
+        const listFields = async (): Promise<{ code: string; name: string }[]> => {
+          try {
+            const v2 = await call<{ field_code: string; field_name: string }[]>(
+              "v2",
+              "GET",
+              "/dealFields?limit=500",
+            );
+            return (v2 ?? []).map((d) => ({ code: d.field_code, name: d.field_name }));
+          } catch (e) {
+            if (isPermission(e)) throw e;
+            const v1 = await call<{ key: string; name: string }[]>("v1", "GET", "/dealFields?limit=500");
+            return (v1 ?? []).map((d) => ({ code: d.key, name: d.name }));
+          }
+        };
+        const createField = async (x: (typeof PIPEDRIVE_SUMMARY_FIELDS)[number]): Promise<string> => {
+          try {
+            return (
+              await call<{ field_code: string }>("v2", "POST", "/dealFields", {
+                field_name: x.name,
+                field_type: x.type,
+              })
+            ).field_code;
+          } catch (e) {
+            if (isPermission(e)) throw e;
+            return (
+              await call<{ key: string }>("v1", "POST", "/dealFields", { name: x.name, field_type: x.type })
+            ).key;
+          }
+        };
         try {
-          const all = await call<{ field_code: string; field_name: string }[]>(
-            "v2",
-            "GET",
-            "/dealFields?limit=500",
-          );
+          const all = await listFields();
           for (const x of PIPEDRIVE_SUMMARY_FIELDS) {
-            const found = all?.find((d) => d.field_name === x.name);
-            if (found) codes[x.key] = found.field_code;
+            const found = all.find((d) => d.name === x.name);
+            if (found) codes[x.key] = found.code;
           }
           for (const x of PIPEDRIVE_SUMMARY_FIELDS) {
             if (codes[x.key]) continue;
             try {
-              const created = await call<{ field_code: string }>("v2", "POST", "/dealFields", {
-                field_name: x.name,
-                field_type: x.type,
-              });
-              codes[x.key] = created.field_code;
+              codes[x.key] = await createField(x);
             } catch (e) {
               warnings.push(
                 /permissão|403/i.test((e as Error).message)

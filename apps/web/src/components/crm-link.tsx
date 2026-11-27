@@ -207,11 +207,19 @@ function PublishStatus({ meetingId }: { meetingId: string }) {
       ) : (
         <div className="text-ink-soft">A análise ainda não foi enviada ao CRM.</div>
       )}
-      {can("crm.publish") && last?.status !== "succeeded" && last?.status !== "running" && (
-        <Button variant="ghost" className="mt-2" disabled={busy} onClick={() => void send()}>
-          {busy ? "Enviando…" : last ? "Reenviar o que falhou" : "Enviar análise ao CRM"}
-        </Button>
-      )}
+      {can("crm.publish") &&
+        last?.status !== "running" &&
+        (last?.status !== "succeeded" || last.fieldsUpdated.length === 0) && (
+          <Button variant="ghost" className="mt-2" disabled={busy} onClick={() => void send()}>
+            {busy
+              ? "Enviando…"
+              : !last
+                ? "Enviar análise ao CRM"
+                : last.status === "succeeded"
+                  ? "Tentar gravar os campos de novo"
+                  : "Reenviar o que falhou"}
+          </Button>
+        )}
       {err && <ErrorText>{err}</ErrorText>}
     </div>
   );

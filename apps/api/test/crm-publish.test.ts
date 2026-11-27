@@ -199,7 +199,7 @@ describe("envio da análise ao CRM", () => {
     expect(crm.tasks.map((t) => t.title)).toEqual(["Treinar equipe", "Revisar metas"]);
 
     const again = await a.post(`/meetings/${meeting}/crm-publish`);
-    expect(again.statusCode).toBe(409);
+    expect(again.statusCode).toBe(409); // campos já gravados: nada a reenviar
     expect(again.json().error.message).toContain("já foi enviada");
   });
 

@@ -168,7 +168,13 @@ export async function publishAnalysisToCrm(
       .select()
       .from(integrationSyncs)
       .where(eq(integrationSyncs.idempotencyKey, key));
-    if (existing?.status === "succeeded") return { skip: "Esta análise já foi enviada ao CRM" } as const;
+    // Já enviada: só um reenvio manual para completar os campos que ficaram faltando
+    // (nota e tarefas já criadas não se repetem).
+    const missingFields =
+      settings.publishFields &&
+      !((existing?.resultSummary as { fieldsUpdated?: string[] } | null)?.fieldsUpdated?.length ?? 0);
+    if (existing?.status === "succeeded" && !(req.trigger === "manual" && missingFields))
+      return { skip: "Esta análise já foi enviada ao CRM" } as const;
     if (existing?.status === "running" && Date.now() - new Date(existing.updatedAt).getTime() < 5 * 60_000)
       return { skip: "Envio em andamento" } as const;
 
