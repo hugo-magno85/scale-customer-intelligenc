@@ -15,6 +15,8 @@ export type RuntimeMessage =
   | { type: "sci:get-detected"; tabId: number }
   | { type: "sci:start-capture"; tabId: number; wsUrl: string }
   | { type: "sci:stop-capture" }
+  /** Clique no ícone da extensão: o Chrome libera a captura da aba (activeTab) nesse momento. */
+  | { type: "sci:action-clicked"; tabId: number }
   | { type: "offscreen:start"; streamId: string; wsUrl: string }
   | { type: "offscreen:stop" }
   | { type: "capture:status"; status: "connecting" | "live" | "stopped" | "error"; message?: string }

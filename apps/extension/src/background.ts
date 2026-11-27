@@ -9,6 +9,11 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false }).catch(() =>
 chrome.action.onClicked.addListener((tab) => {
   // Precisa ser síncrono dentro do gesto do usuário
   if (tab.windowId != null) void chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
+  // Avisa o painel (se já estiver aberto) para iniciar a captura que estava aguardando a liberação
+  if (tab.id != null) {
+    const m: RuntimeMessage = { type: "sci:action-clicked", tabId: tab.id };
+    chrome.runtime.sendMessage(m).catch(() => undefined);
+  }
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => detected.delete(tabId));

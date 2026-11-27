@@ -180,6 +180,8 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
   const [err, setErr] = useState<string | null>(null);
   const [intel, setIntel] = useState<MeetingIntelligence | null>(null);
   const [needsPick, setNeedsPick] = useState(false);
+  /** Captura pedida, aguardando o clique no ícone (liberação do Chrome) para começar sozinha. */
+  const armed = useRef(false);
   const [micState, setMicState] = useState<PermissionState | "unknown">("unknown");
   useEffect(() => {
     let perm: PermissionStatus | null = null;
@@ -215,6 +217,12 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
   }, [meeting.id]);
 
   function handle(msg: RuntimeMessage) {
+    if (msg.type === "sci:action-clicked" && armed.current) {
+      armed.current = false;
+      setNeedsPick(false);
+      void startCapture();
+      return;
+    }
     {
       if (msg.type === "capture:status") {
         setStatus(msg.status);
@@ -265,6 +273,7 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
         wsUrl: wsUrl(t.wsPath, t.ticket),
       } satisfies RuntimeMessage)) as { ok: boolean; error?: string };
       if (r?.error === "NEEDS_TAB_PICK") {
+        armed.current = true;
         setNeedsPick(true);
         return;
       }
@@ -454,13 +463,13 @@ function Live({ meeting, setMeeting }: { meeting: Meeting; setMeeting: (m: Meeti
       )}
       {needsPick && !capturing && (
         <div className="card stack warn">
-          <div className="title">Escolha a aba da reunião</div>
+          <div className="title">Falta um clique</div>
           <p>
-            O Chrome não liberou a captura automática. Clique abaixo, selecione a aba da reunião e ative{" "}
-            <b>Compartilhar áudio da guia</b>. Mantenha este painel aberto durante a captura.
+            Clique no ícone do <b>Scale Assistant</b> na barra do Chrome (com a aba da reunião aberta). A
+            captura começa sozinha.
           </p>
-          <button className="btn" onClick={() => void pickTabCapture()}>
-            Escolher aba da reunião
+          <button className="btn ghost" onClick={() => void pickTabCapture()}>
+            Prefiro escolher a aba manualmente
           </button>
         </div>
       )}
