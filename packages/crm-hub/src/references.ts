@@ -10,7 +10,7 @@ import type { CrmEntityType, CrmProviderKey, ParsedCrmReference } from "@sci/con
  */
 export const URL_PATTERNS_VERIFIED: Record<CrmProviderKey, boolean> = {
   bitrix24: false,
-  pipedrive: false,
+  pipedrive: true,
   rdstation: false,
   zoho: false,
 };

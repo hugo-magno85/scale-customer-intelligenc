@@ -82,7 +82,10 @@ Ao concluir a análise de uma reunião com registro vinculado, o worker envia ao
 - Na reunião (Calls → reunião → Vincular registro do CRM) aparecem o status, o que foi gravado e os avisos, com o botão "Enviar análise ao CRM" ou "Reenviar o que falhou".
 - O worker precisa de `SCI_ENCRYPTION_KEYS` (a mesma chave da API) e de `PUBLIC_APP_URL`. As duas já estão no `stack.yml`.
 
-## Pipedrive — token de API (em homologação)
+## Pipedrive — token de API (disponível)
+
+Homologado com conta real em 27/11/2026: conexão, vínculo por URL, nota, atividade e campos do negócio.
+Na tela de negócio do Pipedrive, os campos "(Scale)" precisam ser adicionados uma vez à seção Detalhes (Reordenar campos ▾).
 
 Implementado em `packages/crm-hub/src/pipedrive.ts` a partir do cliente oficial
 ([pipedrive/client-nodejs](https://github.com/pipedrive/client-nodejs)), que é gerado da especificação OpenAPI.

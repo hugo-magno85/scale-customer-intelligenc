@@ -79,7 +79,10 @@ const CLIENTS: Partial<Record<CrmProviderKey, CrmClientFactory>> = {};
  * CRMs cujo cliente já passou por autenticação, consulta real, validação e testes com conta real.
  * Cliente registrado sem homologação aparece como "Em homologação": funciona, mas sem garantia.
  */
-const HOMOLOGATED: Partial<Record<CrmProviderKey, true>> = {};
+const HOMOLOGATED: Partial<Record<CrmProviderKey, true>> = {
+  // Validado com conta real em 27/11/2026: conexão, vínculo por URL, nota, atividade e campos do negócio.
+  pipedrive: true,
+};
 
 export function registerCrmClient(provider: CrmProviderKey, factory: CrmClientFactory) {
   CLIENTS[provider] = factory;

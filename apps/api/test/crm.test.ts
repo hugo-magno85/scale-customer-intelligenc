@@ -50,12 +50,12 @@ beforeAll(async () => {
 afterAll(async () => ctx?.close());
 
 describe("conexões de CRM", () => {
-  it("lista os 4 CRMs: Bitrix24 e Pipedrive em homologação, os demais aguardando", async () => {
+  it("lista os 4 CRMs: Pipedrive disponível, Bitrix24 em homologação, os demais aguardando", async () => {
     const p = (await client(ctx, admin, tenant).get("/crm/providers")).json();
     expect(p.map((x: { key: string }) => x.key)).toEqual(["bitrix24", "pipedrive", "rdstation", "zoho"]);
     expect(p.map((x: { status: string }) => x.status)).toEqual([
       "homologation",
-      "homologation",
+      "available",
       "awaiting_credentials",
       "awaiting_credentials",
     ]);

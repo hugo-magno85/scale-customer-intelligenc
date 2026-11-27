@@ -190,8 +190,9 @@ function PublishStatus({ meetingId }: { meetingId: string }) {
           </div>
           <div className="text-ink-soft">
             {[
-              last.noteId && "comentário na timeline",
-              last.taskIds.length && `${last.taskIds.length} tarefa(s)`,
+              last.noteId && (last.provider === "pipedrive" ? "nota no negócio" : "comentário na timeline"),
+              last.taskIds.length &&
+                `${last.taskIds.length} ${last.provider === "pipedrive" ? "atividade(s)" : "tarefa(s)"}`,
               last.fieldsUpdated.length && "campos de Health e risco",
             ]
               .filter(Boolean)
