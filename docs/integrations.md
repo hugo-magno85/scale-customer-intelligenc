@@ -51,3 +51,33 @@ Implementado em `packages/crm-hub/src/bitrix24.ts`, com base na documentação o
 
 Status no produto: **Em homologação**. Passa a **Disponível** depois da consulta real validada com a conta da
 Academia Scale (lista `HOMOLOGATED` em `providers.ts` e `URL_PATTERNS_VERIFIED` em `references.ts`).
+
+### Envio da análise ao card (Bitrix24)
+
+Ao concluir a análise de uma reunião com registro vinculado, o worker envia ao Bitrix24 (`packages/jobs/src/crm-publisher.ts`):
+
+1. **Comentário na timeline** (`crm.timeline.comment.add`):
+   - resumo e diagnóstico;
+   - Customer Health (0–10);
+   - riscos com a evidência;
+   - oportunidades e próximos passos;
+   - link para a análise completa.
+2. **Tarefas** (`tasks.task.add`): uma por ação **interna** do plano. As ações atribuídas ao cliente ficam de fora. Cada tarefa é vinculada ao negócio por `UF_CRM_TASK`, com prazo, e o responsável é o dono do negócio.
+3. **Campos do negócio** (`crm.deal.update`), criados uma única vez com `crm.deal.userfield.add` se não existirem:
+   - `UF_CRM_SCI_HEALTH`: Customer Health de 0 a 10;
+   - `UF_CRM_SCI_RISK`: maior risco da reunião;
+   - `UF_CRM_SCI_LAST_ANALYSIS`: data da análise.
+
+   Criar campos exige a permissão do CRM "Permitir modificar configurações". Sem ela, o envio segue sem os campos e mostra um aviso.
+
+**Controles**
+
+- Por conexão, em Integrações:
+  - "Enviar automaticamente ao card após a análise" (desligado por padrão);
+  - escolha de quais partes enviar.
+- Cada análise × registro gera um `integration_syncs`:
+  - em nova tentativa, o comentário e as tarefas já criados não se repetem;
+  - uma análise já enviada não é reenviada;
+  - uma nova versão da análise (reanálise) gera um novo envio.
+- Na reunião (Calls → reunião → Vincular registro do CRM) aparecem o status, o que foi gravado e os avisos, com o botão "Enviar análise ao CRM" ou "Reenviar o que falhou".
+- O worker precisa de `SCI_ENCRYPTION_KEYS` (a mesma chave da API) e de `PUBLIC_APP_URL`. As duas já estão no `stack.yml`.

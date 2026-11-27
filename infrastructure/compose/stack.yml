@@ -100,6 +100,10 @@ services:
       DEEPSEEK_MODEL_REASONING: ${DEEPSEEK_MODEL_REASONING:-}
       TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
       TYPESAFE_DEFAULT_MODEL: ${TYPESAFE_DEFAULT_MODEL:-}
+      # Envio automático ao CRM após a análise (mesma chave do cofre da API) e link da análise
+      SCI_ENCRYPTION_KEYS: ${SCI_ENCRYPTION_KEYS:-}
+      SCI_ENCRYPTION_ACTIVE_KEY: ${SCI_ENCRYPTION_ACTIVE_KEY:-k1}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
     depends_on:
       migrate: { condition: service_completed_successfully }
       redis: { condition: service_healthy }

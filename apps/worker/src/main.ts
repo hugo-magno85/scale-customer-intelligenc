@@ -6,6 +6,7 @@ import { pino } from "pino";
 import { z } from "zod";
 import { purgeExpiredSessions } from "./jobs/maintenance.js";
 import { deepSeekConfigFromEnv, DeepSeekProvider, jevFromEnv } from "@sci/intelligence";
+import { keyringFromEnvOrNull } from "@sci/security";
 import {
   MeetingAnalysisPayload,
   PlaybookProcessPayload,
@@ -56,6 +57,8 @@ const processorDeps = {
   database,
   reasoning: ds ? new DeepSeekProvider(ds) : null,
   decisions: jevFromEnv(),
+  // Envio automático ao CRM após a análise (credenciais cifradas → precisa da mesma chave da API)
+  crm: { keyring: keyringFromEnvOrNull(), appUrl: process.env.PUBLIC_APP_URL ?? null },
   log: { info: (o: object, m: string) => log.info(o, m), warn: (o: object, m: string) => log.warn(o, m) },
 };
 const playbookWorker = new Worker(

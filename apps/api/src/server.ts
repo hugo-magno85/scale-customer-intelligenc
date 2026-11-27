@@ -6,6 +6,7 @@ import {
   DeepSeekProvider,
   jevFromEnv,
 } from "@sci/intelligence";
+import { keyringFromEnvOrNull } from "@sci/security";
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { bullmqDispatcher, inlineDispatcher } from "./lib/jobs.js";
@@ -16,7 +17,12 @@ const ds = deepSeekConfigFromEnv();
 const queue = config.REDIS_URL ? bullmqDispatcher(config.REDIS_URL) : null;
 const jobs =
   queue ??
-  inlineDispatcher({ database, reasoning: ds ? new DeepSeekProvider(ds) : null, decisions: jevFromEnv() });
+  inlineDispatcher({
+    database,
+    reasoning: ds ? new DeepSeekProvider(ds) : null,
+    decisions: jevFromEnv(),
+    crm: { keyring: keyringFromEnvOrNull(), appUrl: config.PUBLIC_APP_URL },
+  });
 const dg = deepgramConfigFromEnv();
 if (!dg) console.warn("DEEPGRAM_API_KEY ausente: captura de reuniões ficará indisponível");
 const app = await buildApp(config, database, {

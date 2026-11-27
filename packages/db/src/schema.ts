@@ -554,6 +554,7 @@ export const crmConnections = pgTable("crm_connections", {
   createdBy: uuid("created_by"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
+  settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
 });
 
 export const meetingCrmLinks = pgTable("meeting_crm_links", {
@@ -605,6 +606,8 @@ export const integrationSyncs = pgTable("integration_syncs", {
   approvedBy: uuid("approved_by"),
   createdAt: ts("created_at").notNull().defaultNow(),
   updatedAt: ts("updated_at").notNull().defaultNow(),
+  meetingId: uuid("meeting_id"),
+  analysisId: uuid("analysis_id"),
 });
 
 export const allTables = {

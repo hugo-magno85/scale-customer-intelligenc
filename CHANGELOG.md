@@ -6,6 +6,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ### Bitrix24 (em homologação)
 
+- Envio da análise ao card após a reunião:
+  - comentário com o resumo;
+  - tarefas do plano de ação;
+  - campos de Customer Health, risco e data da análise, criados automaticamente.
+- Envio automático configurável por conexão, status na reunião e reenvio sem duplicar (migration 0008).
+
 - Cliente REST por webhook de entrada:
   - validação da conexão;
   - consulta de negócio, empresa, contato e lead, com responsável;

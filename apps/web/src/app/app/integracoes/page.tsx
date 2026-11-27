@@ -177,6 +177,36 @@ export default function IntegrationsPage() {
                   : ""}
                 {c.lastError ? ` · ${c.lastError}` : ""}
               </div>
+              {can("integrations.manage") && c.provider === "bitrix24" && (
+                <div className="mt-3 rounded-lg border border-line bg-canvas/60 p-3 text-sm">
+                  <label className="flex items-center gap-2 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={c.settings.autoPublish}
+                      onChange={(e) => void act(c.id, "", { settings: { autoPublish: e.target.checked } })}
+                    />
+                    Enviar automaticamente ao card após a análise da reunião
+                  </label>
+                  <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-ink-soft">
+                    {(
+                      [
+                        ["publishComment", "Comentário com o resumo"],
+                        ["publishTasks", "Tarefas do plano de ação"],
+                        ["publishFields", "Campos: Health, risco e data"],
+                      ] as const
+                    ).map(([k, label]) => (
+                      <label key={k} className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={c.settings[k]}
+                          onChange={(e) => void act(c.id, "", { settings: { [k]: e.target.checked } })}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             {can("integrations.manage") && (
               <div className="flex gap-2">

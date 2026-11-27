@@ -74,3 +74,12 @@ export function safeEqual(a: string, b: string): boolean {
   const bb = Buffer.from(b);
   return ab.length === bb.length && timingSafeEqual(ab, bb);
 }
+
+/** Igual a `keyringFromEnv`, mas devolve `null` quando a chave não está configurada. */
+export function keyringFromEnvOrNull(env: NodeJS.ProcessEnv = process.env): Keyring | null {
+  try {
+    return keyringFromEnv(env);
+  } catch {
+    return null;
+  }
+}

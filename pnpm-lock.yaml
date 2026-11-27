@@ -185,6 +185,9 @@ importers:
       '@sci/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@sci/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       bullmq:
         specifier: ^6.7.10
         version: 6.7.10(ioredis@6.1.0)(pg@8.23.1)
@@ -269,6 +272,9 @@ importers:
       '@sci/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@sci/crm-hub':
+        specifier: workspace:*
+        version: link:../crm-hub
       '@sci/cs-skill':
         specifier: workspace:*
         version: link:../cs-skill
@@ -281,6 +287,9 @@ importers:
       '@sci/playbooks':
         specifier: workspace:*
         version: link:../playbooks
+      '@sci/security':
+        specifier: workspace:*
+        version: link:../security
       zod:
         specifier: ^4.6.7
         version: 4.6.7

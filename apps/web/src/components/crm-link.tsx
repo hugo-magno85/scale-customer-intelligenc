@@ -6,6 +6,7 @@ import {
   CRM_PROVIDERS,
   type CrmEntityType,
   type CrmProviderKey,
+  type CrmPublishSync,
   type MeetingCrmLink,
 } from "@sci/contracts";
 import { useState } from "react";
@@ -73,6 +74,7 @@ export function CrmLinkPanel({ meetingId, canEdit }: { meetingId: string; canEdi
             {active.validationError ? ` — ${active.validationError}` : ""} · vínculo{" "}
             {active.origin === "manual" ? "manual" : "automático"} por {active.userName ?? "—"}
           </div>
+          <PublishStatus meetingId={meetingId} />
           {active.recordUrl && (
             <a
               href={active.recordUrl}
@@ -146,5 +148,71 @@ export function CrmLinkPanel({ meetingId, canEdit }: { meetingId: string; canEdi
         </details>
       )}
     </Card>
+  );
+}
+
+const SYNC: Record<CrmPublishSync["status"], string> = {
+  pending: "Envio pendente",
+  running: "Enviando…",
+  succeeded: "Enviado ao CRM",
+  failed: "Envio com falha",
+  needs_approval: "Aguardando aprovação",
+  cancelled: "Envio cancelado",
+};
+
+/** Situação do envio da análise ao registro vinculado (comentário, tarefas, campos) + reenvio. */
+function PublishStatus({ meetingId }: { meetingId: string }) {
+  const { can } = useSession();
+  const syncs = useApi<CrmPublishSync[]>(`/meetings/${meetingId}/crm-publish`);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const last = syncs.data?.[0];
+  async function send() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await api(`/meetings/${meetingId}/crm-publish`, { method: "POST" });
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+    setBusy(false);
+    await syncs.reload();
+  }
+  return (
+    <div className="mt-2 rounded-lg border border-line bg-canvas/60 p-2.5 text-xs">
+      {last ? (
+        <>
+          <div
+            className={`font-medium ${last.status === "failed" ? "text-risk" : last.status === "succeeded" ? "text-healthy" : ""}`}
+          >
+            {SYNC[last.status]} · {new Date(last.updatedAt).toLocaleString("pt-BR")} ·{" "}
+            {last.trigger === "auto" ? "automático" : "manual"}
+          </div>
+          <div className="text-ink-soft">
+            {[
+              last.noteId && "comentário na timeline",
+              last.taskIds.length && `${last.taskIds.length} tarefa(s)`,
+              last.fieldsUpdated.length && "campos de Health e risco",
+            ]
+              .filter(Boolean)
+              .join(" · ") || "nada gravado ainda"}
+          </div>
+          {last.error && <div className="mt-1 text-risk">{last.error}</div>}
+          {last.warnings.map((w) => (
+            <div key={w} className="mt-1 text-attention">
+              {w}
+            </div>
+          ))}
+        </>
+      ) : (
+        <div className="text-ink-soft">A análise ainda não foi enviada ao CRM.</div>
+      )}
+      {can("crm.publish") && last?.status !== "succeeded" && last?.status !== "running" && (
+        <Button variant="ghost" className="mt-2" disabled={busy} onClick={() => void send()}>
+          {busy ? "Enviando…" : last ? "Reenviar o que falhou" : "Enviar análise ao CRM"}
+        </Button>
+      )}
+      {err && <ErrorText>{err}</ErrorText>}
+    </div>
   );
 }

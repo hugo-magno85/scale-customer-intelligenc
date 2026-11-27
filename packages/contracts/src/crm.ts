@@ -34,6 +34,16 @@ export const CrmProviderInfo = z.object({
 });
 export type CrmProviderInfo = z.infer<typeof CrmProviderInfo>;
 
+/** O que enviar ao CRM depois da análise de uma reunião vinculada. */
+export const CrmConnectionSettings = z.object({
+  /** Envia sozinho assim que a análise termina (sem aprovação a cada reunião). */
+  autoPublish: z.boolean().default(false),
+  publishComment: z.boolean().default(true),
+  publishTasks: z.boolean().default(true),
+  publishFields: z.boolean().default(true),
+});
+export type CrmConnectionSettings = z.infer<typeof CrmConnectionSettings>;
+
 export const CrmConnection = z.object({
   id: Uuid,
   provider: CrmProviderKey,
@@ -44,6 +54,7 @@ export const CrmConnection = z.object({
   hasCredentials: z.boolean(),
   lastValidatedAt: z.string().nullable(),
   lastError: z.string().nullable(),
+  settings: CrmConnectionSettings,
   createdAt: z.string(),
 });
 export type CrmConnection = z.infer<typeof CrmConnection>;
@@ -106,3 +117,22 @@ export const LinkCrmRecordRequest = z.object({
   entityType: CrmEntityType.optional(),
   connectionId: Uuid.optional(),
 });
+
+/** Envio da análise ao CRM (um por análise × registro vinculado). */
+export const CrmPublishSync = z.object({
+  id: Uuid,
+  provider: CrmProviderKey,
+  status: z.enum(["pending", "running", "succeeded", "failed", "needs_approval", "cancelled"]),
+  /** Origem: automática (após a análise) ou manual (botão). */
+  trigger: z.enum(["auto", "manual"]),
+  recordUrl: z.string().nullable(),
+  noteId: z.string().nullable(),
+  taskIds: z.array(z.string()),
+  fieldsUpdated: z.array(z.string()),
+  warnings: z.array(z.string()),
+  error: z.string().nullable(),
+  analysisId: Uuid.nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type CrmPublishSync = z.infer<typeof CrmPublishSync>;

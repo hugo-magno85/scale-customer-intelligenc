@@ -201,4 +201,70 @@ describe("Bitrix24 — chamadas", () => {
       },
     });
   });
+
+  it("campos do negócio: cria os que faltam uma vez e grava os valores", async () => {
+    const { c, calls } = client({
+      "crm.deal.userfield.list": [
+        { body: { result: [{ FIELD_NAME: "UF_CRM_SCI_HEALTH" }] } },
+        { body: { result: [] } },
+        { body: { result: [] } },
+      ],
+      "crm.deal.userfield.add": [{ body: { result: 101 } }, { body: { result: 102 } }],
+      "crm.deal.update": [{ body: { result: true } }, { body: { result: true } }],
+    });
+    const v = { healthScore10: 6.8, riskLabel: "Alto", analyzedAt: "2026-11-27T12:00:00.000Z" };
+    expect(await c.updateSummaryFields!("deal", "10", v)).toEqual({
+      fields: ["UF_CRM_SCI_HEALTH", "UF_CRM_SCI_RISK", "UF_CRM_SCI_LAST_ANALYSIS"],
+      warnings: [],
+    });
+    expect(
+      calls
+        .filter((x) => x.method === "crm.deal.userfield.add")
+        .map((x) => (x.body.fields as { FIELD_NAME: string }).FIELD_NAME),
+    ).toEqual(["SCI_RISK", "SCI_LAST_ANALYSIS"]);
+    expect(calls.find((x) => x.method === "crm.deal.update")!.body).toEqual({
+      id: "10",
+      fields: {
+        UF_CRM_SCI_HEALTH: 6.8,
+        UF_CRM_SCI_RISK: "Alto",
+        UF_CRM_SCI_LAST_ANALYSIS: "2026-11-27T12:00:00.000Z",
+      },
+      params: { REGISTER_SONET_EVENT: "N" },
+    });
+    // segunda vez no mesmo portal: não lista/cria de novo
+    await c.updateSummaryFields!("deal", "10", v);
+    expect(calls.filter((x) => x.method === "crm.deal.userfield.list")).toHaveLength(3);
+    expect((await c.updateSummaryFields!("company", "9", v)).fields).toEqual([]);
+  });
+
+  it("sem permissão para criar campos: avisa e não falha o envio", async () => {
+    const other = parseBitrixWebhook("https://beta.bitrix24.com/rest/1/zzz999code/", "beta.bitrix24.com");
+    const f = fakeFetch({
+      "crm.deal.userfield.list": [
+        { body: { result: [] } },
+        { body: { result: [] } },
+        { body: { result: [] } },
+      ],
+      "crm.deal.userfield.add": [
+        { status: 400, body: { error: "", error_description: "Access denied." } },
+        { status: 400, body: { error: "", error_description: "Access denied." } },
+        { status: 400, body: { error: "", error_description: "Access denied." } },
+      ],
+    });
+    // fetch simulado usa a base do portal principal; aqui reescrevemos a URL
+    const fetchOther = ((url: string, init: RequestInit) =>
+      f.fn(url.replace(other.base, hook.base), init)) as typeof fetch;
+    const c = createBitrixClient(other, {
+      fetch: fetchOther,
+      sleep: async () => {},
+      limiter: new RateLimiter(1000, 1000),
+    });
+    const r = await c.updateSummaryFields!("deal", "10", {
+      healthScore10: 5,
+      riskLabel: "Baixo",
+      analyzedAt: "2026-11-27T00:00:00Z",
+    });
+    expect(r.fields).toEqual([]);
+    expect(r.warnings[0]).toMatch(/permissão de configurar o CRM/);
+  });
 });

@@ -20,9 +20,23 @@ export interface CrmClient {
   createTask(
     entityType: CrmEntityType,
     externalId: string,
-    task: { title: string; dueDate: string | null; ownerExternalId: string | null },
+    task: {
+      title: string;
+      description?: string | null;
+      dueDate: string | null;
+      ownerExternalId: string | null;
+    },
     idempotencyKey: string,
   ): Promise<{ externalTaskId: string }>;
+  /**
+   * Campos de resumo no próprio registro (ex.: Customer Health). Opcional por CRM.
+   * Cria os campos se ainda não existirem; devolve os campos gravados e avisos (sem falhar o envio).
+   */
+  updateSummaryFields?(
+    entityType: CrmEntityType,
+    externalId: string,
+    values: { healthScore10: number | null; riskLabel: string | null; analyzedAt: string },
+  ): Promise<{ fields: string[]; warnings: string[] }>;
 }
 
 export interface CrmClientFactory {

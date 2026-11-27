@@ -56,7 +56,7 @@ export function parseBitrixWebhook(secret: string, portal: string): BitrixWebhoo
 /** Erros de negócio do Bitrix24 em mensagens claras (sem expor a URL). */
 function describe(status: number, error: string, description: string): CrmHttpError {
   const e = error.toUpperCase();
-  const d = description.toLowerCase();
+  const d = description.toLowerCase().trim().replace(/\.$/, "");
   if (e === "INVALID_CREDENTIALS" || e === "NO_AUTH_FOUND")
     return new CrmHttpError(
       "Webhook do Bitrix24 não encontrado ou desativado. Gere um novo e atualize a conexão.",
@@ -104,6 +104,15 @@ export interface BitrixOptions {
 
 /** Um limitador por portal: o Bitrix24 conta as requisições por IP de origem + portal. */
 const limiters = new Map<string, RateLimiter>();
+/** Campos já conferidos por portal (evita listar a cada envio). */
+const ensuredFields = new Map<string, Set<string>>();
+
+/** Campos personalizados do negócio criados pela plataforma (prefixo UF_CRM_ é do Bitrix). */
+export const BITRIX_SUMMARY_FIELDS = [
+  { name: "SCI_HEALTH", type: "double", label: "Customer Health (Scale) 0–10" },
+  { name: "SCI_RISK", type: "string", label: "Risco de churn (Scale)" },
+  { name: "SCI_LAST_ANALYSIS", type: "datetime", label: "Última análise (Scale)" },
+] as const;
 const limiterFor = (host: string) => {
   let l = limiters.get(host);
   if (!l) limiters.set(host, (l = new RateLimiter(2, 10)));
@@ -294,11 +303,60 @@ export function createBitrixClient(
       return { externalNoteId: String(id) };
     },
 
+    async updateSummaryFields(entityType, externalId, values) {
+      checkId(externalId);
+      if (entityType !== "deal")
+        return { fields: [], warnings: ["Campos de resumo são gravados apenas em negócios (deal)"] };
+      const warnings: string[] = [];
+      const known = ensuredFields.get(webhook.host) ?? new Set<string>();
+      for (const f of BITRIX_SUMMARY_FIELDS) {
+        const full = `UF_CRM_${f.name}`;
+        if (known.has(full)) continue;
+        try {
+          const found = await call<{ FIELD_NAME: string }[]>("crm.deal.userfield.list", {
+            filter: { FIELD_NAME: full },
+          });
+          if (!found?.some((x) => x.FIELD_NAME === full))
+            await call<number>("crm.deal.userfield.add", {
+              fields: {
+                FIELD_NAME: f.name,
+                USER_TYPE_ID: f.type,
+                LABEL: f.label,
+                SHOW_FILTER: "Y",
+                EDIT_IN_LIST: "N",
+              },
+            });
+          known.add(full);
+        } catch (e) {
+          warnings.push(
+            /permissão|access denied/i.test((e as Error).message)
+              ? "Campos personalizados não criados: o usuário do webhook precisa da permissão de configurar o CRM. Crie-os uma vez com um administrador ou ajuste a permissão."
+              : `Campo ${full} indisponível: ${(e as Error).message}`,
+          );
+        }
+      }
+      ensuredFields.set(webhook.host, known);
+      const fields: Record<string, unknown> = {};
+      if (known.has("UF_CRM_SCI_HEALTH") && values.healthScore10 !== null)
+        fields.UF_CRM_SCI_HEALTH = values.healthScore10;
+      if (known.has("UF_CRM_SCI_RISK") && values.riskLabel !== null)
+        fields.UF_CRM_SCI_RISK = values.riskLabel;
+      if (known.has("UF_CRM_SCI_LAST_ANALYSIS")) fields.UF_CRM_SCI_LAST_ANALYSIS = values.analyzedAt;
+      if (!Object.keys(fields).length) return { fields: [], warnings: [...new Set(warnings)] };
+      await call<boolean>("crm.deal.update", {
+        id: externalId,
+        fields,
+        params: { REGISTER_SONET_EVENT: "N" },
+      });
+      return { fields: Object.keys(fields), warnings: [...new Set(warnings)] };
+    },
+
     async createTask(entityType, externalId, task) {
       checkId(externalId);
       const r = await call<{ task: { id: string } }>("tasks.task.add", {
         fields: {
           TITLE: task.title,
+          ...(task.description ? { DESCRIPTION: task.description } : {}),
           RESPONSIBLE_ID: Number(task.ownerExternalId ?? webhook.userId),
           ...(task.dueDate ? { DEADLINE: `${task.dueDate}T18:00:00` } : {}),
           UF_CRM_TASK: [`${OWNER_PREFIX[entityType]}_${externalId}`],

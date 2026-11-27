@@ -1,7 +1,9 @@
 import {
   CreateCrmConnectionRequest,
   CrmConnection,
+  CrmConnectionSettings,
   CrmEntityType,
+  CrmPublishSync,
   CrmProviderInfo,
   CrmProviderKey,
   LinkCrmRecordRequest,
@@ -16,7 +18,21 @@ import {
   parseCrmReference,
   ReferenceError,
 } from "@sci/crm-hub";
-import { and, asc, crmConnections, eq, meetingCrmLinks, meetings, sql, users, type Tx } from "@sci/db";
+import {
+  and,
+  asc,
+  crmConnections,
+  desc,
+  eq,
+  integrationSyncs,
+  meetingAnalyses,
+  meetingCrmLinks,
+  meetings,
+  sql,
+  users,
+  type Tx,
+} from "@sci/db";
+import { publishAnalysisToCrm } from "@sci/jobs";
 import { decryptSecret, encryptSecret, keyringFromEnv, type Keyring } from "@sci/security";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -54,8 +70,36 @@ const toConnection = (c: typeof crmConnections.$inferSelect): CrmConnection => (
   hasCredentials: !!c.encryptedCredentials,
   lastValidatedAt: c.lastValidatedAt,
   lastError: c.lastError,
+  settings: CrmConnectionSettings.parse(c.settings ?? {}),
   createdAt: c.createdAt,
 });
+
+const toSync = (s: typeof integrationSyncs.$inferSelect): CrmPublishSync => {
+  const r = (s.resultSummary ?? {}) as {
+    noteId?: string | null;
+    tasks?: { id: string; externalId: string }[];
+    fieldsUpdated?: string[];
+    warnings?: string[];
+    recordUrl?: string | null;
+    trigger?: "auto" | "manual";
+  };
+  const q = s.requestSummary as { provider?: CrmProviderKey; trigger?: "auto" | "manual" };
+  return {
+    id: s.id,
+    provider: q.provider ?? "bitrix24",
+    status: s.status,
+    trigger: r.trigger ?? q.trigger ?? "auto",
+    recordUrl: r.recordUrl ?? null,
+    noteId: r.noteId ?? null,
+    taskIds: Array.isArray(r.tasks) ? r.tasks.map((t) => t.externalId) : [],
+    fieldsUpdated: r.fieldsUpdated ?? [],
+    warnings: r.warnings ?? [],
+    error: s.error,
+    analysisId: s.analysisId,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+  };
+};
 
 async function listLinks(tx: Tx, meetingId: string): Promise<MeetingCrmLink[]> {
   const rows = await tx
@@ -216,6 +260,7 @@ export async function crmRoutes(base: FastifyInstance) {
           status: z.enum(["pending", "disabled"]).optional(),
           label: z.string().trim().min(2).max(120).optional(),
           secret: z.string().min(8).max(4000).optional(),
+          settings: CrmConnectionSettings.partial().optional(),
         }),
         response: { 200: CrmConnection },
       },
@@ -226,6 +271,14 @@ export async function crmRoutes(base: FastifyInstance) {
         const patch: Partial<typeof crmConnections.$inferInsert> = {};
         if (req.body.status) patch.status = req.body.status;
         if (req.body.label) patch.label = req.body.label;
+        if (req.body.settings) {
+          const [cur] = await tx
+            .select({ settings: crmConnections.settings })
+            .from(crmConnections)
+            .where(eq(crmConnections.id, req.params.id));
+          if (!cur) throw notFound("Conexão");
+          patch.settings = CrmConnectionSettings.parse({ ...(cur.settings ?? {}), ...req.body.settings });
+        }
         if (req.body.secret) {
           const [cur] = await tx.select().from(crmConnections).where(eq(crmConnections.id, req.params.id));
           if (!cur) throw notFound("Conexão");
@@ -249,7 +302,12 @@ export async function crmRoutes(base: FastifyInstance) {
           action: "crm.connection.updated",
           entityType: "crm_connection",
           entityId: c.id,
-          metadata: { status: req.body.status, label: req.body.label, secretRotated: !!req.body.secret },
+          metadata: {
+            status: req.body.status,
+            label: req.body.label,
+            secretRotated: !!req.body.secret,
+            settings: req.body.settings,
+          },
         });
         return toConnection(c);
       }),
@@ -325,6 +383,64 @@ export async function crmRoutes(base: FastifyInstance) {
         if (!m) throw notFound("Reunião");
         return listLinks(tx, m.id);
       }),
+  );
+
+  // Envio da análise ao CRM ---------------------------------------------------------------
+  app.get(
+    "/meetings/:id/crm-publish",
+    {
+      schema: { tags: ["crm"], params: Id, response: { 200: z.array(CrmPublishSync) } },
+      preHandler: requirePermission("meetings.read"),
+    },
+    async (req) =>
+      tenantTx(req, async (tx) => {
+        const [m] = await tx.select({ id: meetings.id }).from(meetings).where(eq(meetings.id, req.params.id));
+        if (!m) throw notFound("Reunião");
+        const rows = await tx
+          .select()
+          .from(integrationSyncs)
+          .where(eq(integrationSyncs.meetingId, m.id))
+          .orderBy(desc(integrationSyncs.createdAt))
+          .limit(10);
+        return rows.map(toSync);
+      }),
+  );
+
+  /** Envia (ou reenvia o que falhou) a análise mais recente da reunião ao registro vinculado. */
+  app.post(
+    "/meetings/:id/crm-publish",
+    {
+      schema: { tags: ["crm"], params: Id, response: { 200: CrmPublishSync } },
+      preHandler: requirePermission("crm.publish"),
+    },
+    async (req) => {
+      const analysisId = await tenantTx(req, async (tx) => {
+        const [m] = await tx.select({ id: meetings.id }).from(meetings).where(eq(meetings.id, req.params.id));
+        if (!m) throw notFound("Reunião");
+        const [a] = await tx
+          .select({ id: meetingAnalyses.id })
+          .from(meetingAnalyses)
+          .where(and(eq(meetingAnalyses.meetingId, m.id), eq(meetingAnalyses.status, "completed")))
+          .orderBy(desc(meetingAnalyses.version))
+          .limit(1);
+        if (!a) throw conflict("A reunião ainda não tem análise concluída para enviar");
+        return a.id;
+      });
+      const r = await publishAnalysisToCrm(
+        {
+          database: app.database,
+          keyring: getKeyring(),
+          appUrl: app.config.PUBLIC_APP_URL,
+          log: { info: (o, msg) => req.log.info(o, msg), warn: (o, msg) => req.log.warn(o, msg) },
+        },
+        { tenantId: req.tenant!.tenantId, analysisId, trigger: "manual", requestedBy: req.auth!.userId },
+      );
+      if (r.status === "skipped") throw conflict(r.reason);
+      return tenantTx(req, async (tx) => {
+        const [s] = await tx.select().from(integrationSyncs).where(eq(integrationSyncs.id, r.syncId));
+        return toSync(s!);
+      });
+    },
   );
 
   app.post(

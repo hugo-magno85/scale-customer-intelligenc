@@ -5,6 +5,7 @@ import { buildApp } from "../src/app.js";
 import { inlineDispatcher } from "../src/lib/jobs.js";
 import { provisionPlatformAdmin } from "../src/lib/provision-admin.js";
 import { loadConfig } from "../src/config.js";
+import { keyringFromEnvOrNull } from "@sci/security";
 
 export const ORIGIN = "http://localhost:3000";
 
@@ -35,6 +36,12 @@ export async function setup() {
       return ai.reasoning;
     },
     decisions: null,
+    crm: {
+      get keyring() {
+        return keyringFromEnvOrNull();
+      },
+      appUrl: "https://ci.example.test",
+    },
   };
   const transcription: { provider: TranscriptionProvider | null } = { provider: null };
   const app = await buildApp(config, db.app, {

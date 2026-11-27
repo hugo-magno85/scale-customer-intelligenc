@@ -34,6 +34,7 @@ import {
 } from "@sci/intelligence";
 import { TenantSkillSettings } from "@sci/contracts";
 import { z } from "zod";
+import { publishAnalysisToCrm, type CrmPublishDeps } from "./crm-publisher.js";
 
 export const MeetingAnalysisPayload = z.object({
   tenantId: z.uuid(),
@@ -46,6 +47,8 @@ export interface AnalysisDeps {
   database: Database;
   reasoning: ReasoningProvider | null;
   decisions: DecisionProvider | null;
+  /** Envio automático ao CRM vinculado após a análise (quando a conexão permitir). */
+  crm?: Omit<CrmPublishDeps, "database" | "log">;
   log?: { info: (o: object, m: string) => void; warn: (o: object, m: string) => void };
 }
 
@@ -401,5 +404,12 @@ export async function processMeetingAnalysis(
     });
   });
   deps.log?.info({ analysisId: a.id, mode: out.mode }, "reunião analisada");
+  // Depois de gravar a análise: envia ao CRM vinculado, se a conexão estiver com envio automático.
+  // Falhas no CRM ficam registradas no envio e nunca invalidam a análise.
+  if (deps.crm)
+    await publishAnalysisToCrm(
+      { ...deps.crm, database: db, log: deps.log },
+      { tenantId: p.tenantId, analysisId: a.id, trigger: "auto", requestedBy: p.requestedBy },
+    ).catch((err: Error) => deps.log?.warn({ analysisId: a.id, err: err.message }, "falha no envio ao CRM"));
   return "completed";
 }
