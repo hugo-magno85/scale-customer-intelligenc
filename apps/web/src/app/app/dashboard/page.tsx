@@ -64,6 +64,14 @@ import { useApi } from "@/lib/use-api";
 
 /* ---------------------------------------------------------------- KPIs -- */
 
+/** Valor em reais curto para os cards (o valor exato aparece no detalhe). */
+function compactBRL(cents: number): string {
+  const r = cents / 100;
+  if (Math.abs(r) < 10_000) return formatBRL(Math.round(r) * 100).replace(/,00$/, "");
+  const [n, unit] = Math.abs(r) >= 1_000_000 ? [r / 1_000_000, "mi"] : [r / 1_000, "mil"];
+  return `R$ ${n.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} ${unit}`;
+}
+
 const KPI_META: Record<
   BiKpiKey,
   {
@@ -108,7 +116,7 @@ const KPI_META: Record<
     label: "Receita em risco",
     Icon: CircleDollarSign,
     color: BI.red,
-    format: (v) => formatBRL(v),
+    format: (v) => compactBRL(v),
     drill: "revenue",
   },
   expansion: {
@@ -467,35 +475,15 @@ function VividKpi({
   };
   const icon = (
     <span
-      className={`flex shrink-0 items-center justify-center bg-white shadow-[0_1px_2px_rgba(16,24,64,.08)] ${compact ? "h-[42px] w-[42px] rounded-[13px]" : "h-[34px] w-[34px] rounded-[11px]"}`}
+      className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] bg-white shadow-[0_1px_2px_rgba(16,24,64,.08)]"
       style={{ color: v.color }}
     >
-      <m.Icon size={compact ? 20 : 18} aria-hidden />
+      <m.Icon size={18} aria-hidden />
     </span>
   );
-  const body = compact ? (
-    <div className="flex items-center gap-3.5 p-4">
-      {icon}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1 text-xs font-bold" style={{ color: v.ink }}>
-          {label} <Tip text={kpi.source} />
-        </div>
-        <div className="mt-1 flex flex-wrap items-baseline gap-2">
-          <span
-            className="font-[Inter_Tight,Inter,sans-serif] text-[26px] font-bold leading-none tracking-[-0.03em]"
-            style={{ color: v.ink }}
-          >
-            {value}
-          </span>
-          <VividDelta kpi={kpi} ink={v.ink} />
-        </div>
-      </div>
-      <div className="w-16 shrink-0">
-        <Sparkline values={kpi.spark} color={v.color} height={30} />
-      </div>
-    </div>
-  ) : (
-    <div className="flex h-full flex-col justify-between gap-3.5 p-5">
+  // Número centralizado: cabeçalho em cima, valor + variação no meio, tendência embaixo
+  const body = (
+    <div className={`flex h-full flex-col gap-2 ${compact ? "p-4" : "p-5"}`}>
       <div className="flex items-center gap-2.5">
         {icon}
         <span className="text-xs font-bold" style={{ color: v.ink }}>
@@ -505,22 +493,18 @@ function VividKpi({
           <Tip text={kpi.source} />
         </span>
       </div>
-      <div className="flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <div
-            className={`font-[Inter_Tight,Inter,sans-serif] font-bold leading-none tracking-[-0.03em] ${value.length > 9 ? "text-2xl" : "text-[30px]"}`}
-            style={{ color: v.ink }}
-          >
-            {value}
-          </div>
-          <div className="mt-2">
-            <VividDelta kpi={kpi} ink={v.ink} />
-          </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 py-1 text-center">
+        <div
+          className={`font-[Inter_Tight,Inter,sans-serif] font-bold leading-none tracking-[-0.03em] ${
+            compact ? "text-[30px]" : value.length > 9 ? "text-[30px]" : "text-[42px]"
+          }`}
+          style={{ color: v.ink }}
+        >
+          {value}
         </div>
-        <div className="w-[72px] shrink-0">
-          <Sparkline values={kpi.spark} color={v.color} height={34} />
-        </div>
+        <VividDelta kpi={kpi} ink={v.ink} />
       </div>
+      <Sparkline values={kpi.spark} color={v.color} height={compact ? 22 : 30} />
     </div>
   );
   if (m.href)
@@ -549,37 +533,40 @@ function TasksDoneCard({ data }: { data: ReportBi }) {
   return (
     <Link
       href="/app/planos"
-      className="flex items-center gap-3.5 rounded-[20px] p-4 no-underline transition hover:-translate-y-0.5 motion-reduce:transform-none"
+      className="flex flex-col gap-2 rounded-[20px] p-4 no-underline transition hover:-translate-y-0.5 motion-reduce:transform-none"
       style={{
         background: "linear-gradient(145deg,#F0FCF5,#D4F5E3)",
         boxShadow: "inset 0 0 0 1px #C3EFD7, 0 8px 24px -14px rgba(16,24,64,.16)",
       }}
     >
-      <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px] bg-white text-[#00A957] shadow-[0_1px_2px_rgba(16,24,64,.08)]">
-        <CheckCircle2 size={20} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1 text-xs font-bold" style={{ color: ink }}>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[11px] bg-white text-[#00A957] shadow-[0_1px_2px_rgba(16,24,64,.08)]">
+          <CheckCircle2 size={18} aria-hidden />
+        </span>
+        <span className="text-xs font-bold" style={{ color: ink }}>
           Tarefas concluídas
+        </span>
+        <span className="ml-auto">
           <Tip text="Das tarefas criadas no período (sem as canceladas), quantas já foram concluídas. Tempo médio: da criação à conclusão." />
-        </div>
-        <div className="mt-1 flex flex-wrap items-baseline gap-2">
-          <span
-            className="font-[Inter_Tight,Inter,sans-serif] text-[26px] font-bold leading-none tracking-[-0.03em]"
-            style={{ color: ink }}
-          >
-            {p.completionRate === null ? "—" : `${p.completionRate.toLocaleString("pt-BR")}%`}
-          </span>
-          <span
-            className="inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-bold"
-            style={{ color: ink }}
-          >
-            {p.completionRate === null
-              ? "nenhuma tarefa no período"
-              : `${p.completed} de ${p.created}${p.avgCompletionDays !== null ? ` · ${p.avgCompletionDays.toLocaleString("pt-BR")} dias` : ""}`}
-          </span>
-        </div>
+        </span>
       </div>
+      <div className="flex flex-1 flex-col items-center justify-center gap-2 py-1 text-center">
+        <span
+          className="font-[Inter_Tight,Inter,sans-serif] text-[30px] font-bold leading-none tracking-[-0.03em]"
+          style={{ color: ink }}
+        >
+          {p.completionRate === null ? "—" : `${p.completionRate.toLocaleString("pt-BR")}%`}
+        </span>
+        <span
+          className="inline-flex rounded-full bg-white px-2 py-0.5 text-[11px] font-bold"
+          style={{ color: ink }}
+        >
+          {p.completionRate === null
+            ? "nenhuma tarefa no período"
+            : `${p.completed} de ${p.created}${p.avgCompletionDays !== null ? ` · ${p.avgCompletionDays.toLocaleString("pt-BR")} dias` : ""}`}
+        </span>
+      </div>
+      <div className="h-[22px]" aria-hidden />
     </Link>
   );
 }
@@ -665,7 +652,7 @@ function HealthCompact({ data }: { data: ReportBi }) {
           y="158"
           textAnchor="middle"
           fill="rgba(255,255,255,.8)"
-          fontFamily="Inter"
+          fontFamily="Inter, system-ui, sans-serif"
           fontSize={13}
         >
           de 10
