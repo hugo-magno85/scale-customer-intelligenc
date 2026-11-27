@@ -4,6 +4,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Marca própria da inteligência
+
+- Nenhuma tela, mensagem ou resposta da API mostra os fornecedores de IA ao cliente.
+  - O modelo fica só no banco, para auditoria interna.
+  - Os avisos antigos foram reescritos (migration 0009).
+- Bitrix24 homologado com conta real e marcado como disponível.
+
 ### Pipedrive (disponível — homologado com conta real)
 
 - Cliente por token de API pessoal:
@@ -12,7 +19,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
   - envio da análise como nota, atividades do plano e campos do negócio.
 - Cadastro na tela de Integrações com validação do formato do token.
 
-### Bitrix24 (em homologação)
+### Bitrix24 (disponível — homologado com conta real)
 
 - Envio da análise ao card após a reunião:
   - comentário com o resumo;

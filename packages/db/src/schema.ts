@@ -359,7 +359,7 @@ export const meetingLiveSignals = pgTable("meeting_live_signals", {
   evidenceSegmentId: bigint("evidence_segment_id", { mode: "number" }),
   evidenceText: text("evidence_text").notNull(),
   evidenceSpeaker: text("evidence_speaker"),
-  source: text("source", { enum: ["jev", "heuristic"] }).notNull(),
+  source: text("source", { enum: ["ai", "heuristic"] }).notNull(),
   createdAt: ts("created_at").notNull(),
 });
 

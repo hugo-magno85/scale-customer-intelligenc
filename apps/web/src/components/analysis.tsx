@@ -41,7 +41,7 @@ export function AnalysisView({
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
         <span>
           Análise v{a.version} · {a.mode === "full" ? "completa" : "básica"} · skill v{a.skillVersion}
-          {a.model ? ` · ${a.model}` : ""} ·{" "}
+          {" · "}
           {a.completedAt ? new Date(a.completedAt).toLocaleString("pt-BR") : ""}
         </span>
         {canAct && (

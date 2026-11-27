@@ -19,7 +19,8 @@ export const LiveSignal = z.object({
   label: z.string(),
   confidence: z.number().min(0).max(1),
   evidence: Evidence,
-  source: z.enum(["jev", "heuristic"]),
+  /** "ai": motor de decisão da plataforma; "heuristic": palavras-chave. */
+  source: z.enum(["ai", "heuristic"]),
   createdAt: z.string(),
 });
 export type LiveSignal = z.infer<typeof LiveSignal>;

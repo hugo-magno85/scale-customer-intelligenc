@@ -115,7 +115,7 @@ describe("Playbook Intelligence — fluxo completo", () => {
     expect(v.status).toBe("in_review");
     expect(v.number).toBe(1);
     expect(v.skillVersion).toBe("1.0.0");
-    expect(v.interpretationModel).toBe("fake-model");
+    expect(v.interpretationModel).toBeNull(); // fornecedor de IA nunca é exposto
     expect(v.documents).toHaveLength(2);
     expect(v.documents[0].extractedChars).toBeGreaterThan(0);
     expect(v.structure.questions[1].text).toBe("Que resultado vocês perceberam?");
@@ -232,7 +232,8 @@ describe("falhas e segurança", () => {
     ]);
     const v = r.json();
     expect(v.status).toBe("failed");
-    expect(v.processingError).toContain("DeepSeek não está configurado");
+    expect(v.processingError).toContain("Interpretação automática indisponível");
+    expect(v.processingError).not.toMatch(/deepseek|jev|typesafe/i);
     expect(v.documents[0].extractedChars).toBeGreaterThan(0);
     ctx.ai.reasoning = saved;
     ctx.ai.output = {

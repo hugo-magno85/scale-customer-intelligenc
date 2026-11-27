@@ -37,3 +37,14 @@ autenticado adicional (AAD) — um segredo copiado para outro tenant não decifr
 ## Logs
 
 JSON estruturado (pino) com `reqId`; cabeçalhos `authorization`, `cookie` e campos `password` são redigidos.
+
+## Fornecedores de IA são informação interna
+
+Os clientes nunca veem quais fornecedores de IA a plataforma usa (raciocínio, decisões tipadas, transcrição):
+
+- a API não devolve o nome do modelo: `model` e `interpretationModel` vêm sempre `null`. O valor fica só no banco, para auditoria interna;
+- avisos e erros são escritos de forma neutra, como "análise avançada indisponível" ou "modo básico";
+- a origem dos sinais em tempo real é `ai` (motor da plataforma) ou `heuristic`;
+- a migration `0009` reescreveu os avisos que já estavam gravados.
+
+Variáveis de ambiente, logs do servidor e esta documentação técnica continuam com os nomes reais, porque são de uso interno.

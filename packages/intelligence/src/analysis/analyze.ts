@@ -287,7 +287,7 @@ function basicAnalysis(
   warnings: string[],
 ): AnalysisOutput {
   warnings.push(
-    "Análise básica: o provedor de raciocínio (DeepSeek) não está configurado. Indicadores e Customer Health não foram calculados; riscos e oportunidades vêm dos sinais identificados durante a reunião.",
+    "Análise básica: a análise avançada não está disponível neste ambiente. Indicadores e Customer Health não foram calculados; riscos e oportunidades vêm dos sinais identificados durante a reunião.",
   );
   const risks: RiskOut[] = [];
   const opportunities: OpportunityOut[] = [];
@@ -465,7 +465,7 @@ export async function analyzeMeeting(
           `${before - risks.length - opportunities.length} conclusão(ões) descartada(s) na conferência de evidências.`,
         );
     } catch {
-      warnings.push("Conferência de evidências (Jev) indisponível nesta análise.");
+      warnings.push("Conferência automática de evidências indisponível nesta análise.");
     }
   }
   const riskOpen = risks.length > 0;

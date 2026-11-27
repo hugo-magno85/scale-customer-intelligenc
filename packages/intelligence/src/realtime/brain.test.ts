@@ -184,7 +184,7 @@ describe("MeetingBrain — com Jev e DeepSeek", () => {
     b.onSegment(say("customer", "Sinceramente, vocês prometem e não cumprem."), 0);
     await b.analyze();
     const st = b.state();
-    expect(st.signals[0]).toMatchObject({ key: "loss_of_trust", source: "jev", confidence: 0.82 });
+    expect(st.signals[0]).toMatchObject({ key: "loss_of_trust", source: "ai", confidence: 0.82 });
     expect(st.checklist[0]!.status).toBe("covered");
     expect(decide.mock.calls[0]![0].state.transcricaoRecente[0]).toEqual({
       quem: "cliente",

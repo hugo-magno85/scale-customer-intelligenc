@@ -112,7 +112,7 @@ describe("registro de CRMs", () => {
   it("nenhum CRM aparece como disponível sem homologação com conta real", () => {
     const st = Object.fromEntries(listProviders().map((p) => [p.key, p.status]));
     expect(st).toEqual({
-      bitrix24: "homologation",
+      bitrix24: "available",
       pipedrive: "available",
       rdstation: "awaiting_credentials",
       zoho: "awaiting_credentials",

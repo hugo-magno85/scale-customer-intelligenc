@@ -9,7 +9,7 @@ import type { CrmEntityType, CrmProviderKey, ParsedCrmReference } from "@sci/con
  * (`URL_PATTERNS_VERIFIED`). Informar o ID puro funciona sempre.
  */
 export const URL_PATTERNS_VERIFIED: Record<CrmProviderKey, boolean> = {
-  bitrix24: false,
+  bitrix24: true,
   pipedrive: true,
   rdstation: false,
   zoho: false,

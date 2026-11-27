@@ -94,7 +94,8 @@ async function getVersion(tx: Tx, id: string): Promise<PlaybookVersion> {
     structure: v.structure == null ? null : PlaybookStructure.parse(v.structure),
     processingError: v.processingError,
     processingWarnings: v.processingWarnings,
-    interpretationModel: v.interpretationModel,
+    // Fornecedor/modelo de IA é informação interna: não é exposto aos clientes
+    interpretationModel: null,
     skillVersion: v.skillVersion,
     createdBy: v.createdBy,
     approvedBy: v.approvedBy,

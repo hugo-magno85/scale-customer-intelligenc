@@ -82,6 +82,8 @@ const CLIENTS: Partial<Record<CrmProviderKey, CrmClientFactory>> = {};
 const HOMOLOGATED: Partial<Record<CrmProviderKey, true>> = {
   // Validado com conta real em 27/11/2026: conexão, vínculo por URL, nota, atividade e campos do negócio.
   pipedrive: true,
+  // Validado com conta real em 27/11/2026: webhook, vínculo, comentário, tarefas e campos do negócio.
+  bitrix24: true,
 };
 
 export function registerCrmClient(provider: CrmProviderKey, factory: CrmClientFactory) {

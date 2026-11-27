@@ -408,11 +408,7 @@ export async function meetingRoutes(base: FastifyInstance) {
       return fail(4409, "not_capturable", "Reunião sem consentimento registrado ou já encerrada");
     }
     if (!app.transcription)
-      return fail(
-        4503,
-        "transcription_unavailable",
-        "Transcrição não configurada neste ambiente (DEEPGRAM_API_KEY)",
-      );
+      return fail(4503, "transcription_unavailable", "Transcrição indisponível neste ambiente");
     if (activeStreams.has(meetingId))
       return fail(4409, "already_streaming", "Esta reunião já está sendo capturada em outra conexão");
     activeStreams.set(meetingId, socket);

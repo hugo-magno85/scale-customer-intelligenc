@@ -66,8 +66,8 @@ export class MeetingBrain {
     this.candidates = buildCandidates(ctx);
     this.checklist = buildChecklist(ctx);
     this.prepNotes = preparationNotes(ctx);
-    if (!deps.decisions) this.degraded.add("Detecção de sinais em modo básico (Jev não configurado).");
-    if (!deps.reasoning) this.degraded.add("Perguntas sem adaptação ao contexto (DeepSeek não configurado).");
+    if (!deps.decisions) this.degraded.add("Detecção de sinais em modo básico.");
+    if (!deps.reasoning) this.degraded.add("Perguntas sem adaptação ao contexto da conversa (modo básico).");
   }
 
   onChange(cb: (s: MeetingIntelligence) => void): () => void {
@@ -221,7 +221,7 @@ export class MeetingBrain {
         label: d.label,
         confidence: round(d.confidence),
         evidence,
-        source: this.deps.decisions ? "jev" : "heuristic",
+        source: this.deps.decisions ? "ai" : "heuristic",
         createdAt: new Date(this.now()).toISOString(),
         at: this.now(),
       };

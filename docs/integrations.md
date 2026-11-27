@@ -25,7 +25,9 @@ Nenhum CRM tem cliente de API registrado: todos aparecem como “Aguardando homo
 (`URL_PATTERNS_VERIFIED`) também precisam ser confirmados com contas reais. Até lá, o vínculo fica
 “Aguardando validação no CRM” — sem dados inventados.
 
-## Bitrix24 — webhook de entrada (em homologação)
+## Bitrix24 — webhook de entrada (disponível)
+
+Homologado com conta real em 27/11/2026: webhook, vínculo, comentário, tarefas e campos do negócio.
 
 Implementado em `packages/crm-hub/src/bitrix24.ts`, com base na documentação oficial da REST API
 ([bitrix24/b24restdocs](https://github.com/bitrix24/b24restdocs)).
@@ -49,8 +51,7 @@ Implementado em `packages/crm-hub/src/bitrix24.ts`, com base na documentação o
   - usuário sem acesso ao registro.
 - **Ainda não suportado**: Bitrix24 instalado no próprio servidor (on-premise) e OAuth/Marketplace.
 
-Status no produto: **Em homologação**. Passa a **Disponível** depois da consulta real validada com a conta da
-Academia Scale (lista `HOMOLOGATED` em `providers.ts` e `URL_PATTERNS_VERIFIED` em `references.ts`).
+Status no produto: **Disponível** (lista `HOMOLOGATED` em `providers.ts` e `URL_PATTERNS_VERIFIED` em `references.ts`).
 
 ### Envio da análise ao card (Bitrix24)
 

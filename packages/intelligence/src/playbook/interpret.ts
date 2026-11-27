@@ -307,7 +307,7 @@ export async function interpretPlaybook(
         );
       }
     } catch {
-      warnings.push("Classificação automática (Jev) indisponível; interpretação seguiu sem ela.");
+      warnings.push("Classificação automática indisponível; a interpretação seguiu sem ela.");
     }
   }
 

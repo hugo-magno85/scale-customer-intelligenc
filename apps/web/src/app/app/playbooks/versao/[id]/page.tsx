@@ -229,7 +229,6 @@ export default function VersionPage() {
         subtitle={[
           v.source === "upload" ? "Interpretada a partir de documentos" : "Cadastro manual",
           v.skillVersion ? `Skill de CS v${v.skillVersion}` : null,
-          v.interpretationModel ? `Modelo: ${v.interpretationModel}` : null,
         ]
           .filter(Boolean)
           .join(" · ")}

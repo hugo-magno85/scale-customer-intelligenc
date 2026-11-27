@@ -152,7 +152,8 @@ async function getAnalysis(tx: Tx, meetingId: string): Promise<MeetingAnalysis |
     })),
     error: a.error,
     warnings: a.warnings,
-    model: a.model,
+    // Fornecedor/modelo de IA é informação interna: não é exposto aos clientes
+    model: null,
     skillVersion: a.skillVersion,
     playbookVersionId: a.playbookVersionId,
     createdAt: a.createdAt,

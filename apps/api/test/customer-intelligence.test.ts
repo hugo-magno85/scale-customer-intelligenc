@@ -182,7 +182,7 @@ describe("Modo Análise ponta a ponta", () => {
       status: "completed",
       mode: "full",
       version: 1,
-      model: "fake-model",
+      model: null, // fornecedor de IA nunca é exposto
       skillVersion: "1.0.0",
     });
     const adoption = an.indicators.find((i: { indicator: string }) => i.indicator === "adoption");
@@ -289,7 +289,7 @@ describe("Modo Análise ponta a ponta", () => {
     expect((await client(ctx, admin, tenant).get(`/meetings/${r.id}/analysis`)).json().version).toBe(2);
   });
 
-  it("sem DeepSeek: análise básica, sem indicadores nem Health inventados", async () => {
+  it("sem o motor de IA: análise básica, sem indicadores nem Health inventados", async () => {
     const saved = ctx.ai.reasoning;
     ctx.ai.reasoning = null;
     const c2 = (await client(ctx, admin, tenant).post("/customers", { name: "Beta" })).json().id;

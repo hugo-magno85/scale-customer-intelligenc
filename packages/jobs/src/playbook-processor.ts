@@ -91,7 +91,7 @@ export async function processPlaybookVersion(
   // 3–4. Interpretação e estruturação
   if (!deps.reasoning) {
     return fail(
-      "Interpretação indisponível: o provedor DeepSeek não está configurado neste ambiente. O texto foi extraído; reprocesse quando a chave estiver configurada ou crie a versão manualmente.",
+      "Interpretação automática indisponível neste ambiente. O texto foi extraído; reprocesse mais tarde ou crie a versão manualmente.",
     );
   }
   let result;
