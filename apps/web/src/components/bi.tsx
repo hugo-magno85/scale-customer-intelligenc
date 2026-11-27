@@ -309,6 +309,7 @@ export function AreaCompare({
   current,
   previous,
   max,
+  autoScale = false,
   format,
   ariaLabel,
   currentLabel = "Período",
@@ -318,6 +319,8 @@ export function AreaCompare({
   current: (number | null)[];
   previous: (number | null)[];
   max: number;
+  /** Ajusta o eixo à faixa dos dados (com folga), mantendo os valores no eixo. */
+  autoScale?: boolean;
   format: (v: number) => string;
   ariaLabel: string;
   currentLabel?: string;
@@ -334,7 +337,10 @@ export function AreaCompare({
   const pad = { l: 34, r: 14, t: 14, b: 26 };
   const n = Math.max(labels.length - 1, 1);
   const x = (i: number) => pad.l + (i * (W - pad.l - pad.r)) / n;
-  const y = (v: number) => pad.t + ((max - v) * (H - pad.t - pad.b)) / max;
+  const vals = [...current, ...previous].filter((v): v is number => v !== null);
+  const lo = autoScale && vals.length ? Math.max(0, Math.floor(Math.min(...vals) - 0.5)) : 0;
+  const hi = autoScale && vals.length ? Math.min(max, Math.ceil(Math.max(...vals) + 0.5)) : max;
+  const y = (v: number) => pad.t + ((hi - v) * (H - pad.t - pad.b)) / (hi - lo || 1);
   const path = (vals: (number | null)[]) => {
     let d = "";
     vals.forEach((v, i) => {
@@ -353,10 +359,10 @@ export function AreaCompare({
   });
   if (cur.length) segs.push(areaOf(cur));
   function areaOf(idx: number[]) {
-    return `M${x(idx[0]!)},${y(0)} ${idx.map((i) => `L${x(i)},${y(current[i]!)}`).join(" ")} L${x(idx.at(-1)!)},${y(0)} Z`;
+    return `M${x(idx[0]!)},${y(lo)} ${idx.map((i) => `L${x(i)},${y(current[i]!)}`).join(" ")} L${x(idx.at(-1)!)},${y(lo)} Z`;
   }
   const trend = linearTrend(current);
-  const ticks = [0, max / 2, max];
+  const ticks = [lo, (lo + hi) / 2, hi];
   const step = Math.ceil(labels.length / 8);
   return (
     <div>
@@ -451,7 +457,7 @@ export function AreaCompare({
             ),
           )}
           {hover !== null && (
-            <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={y(0)} stroke="#0f1729" strokeOpacity={0.15} />
+            <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={y(lo)} stroke="#0f1729" strokeOpacity={0.15} />
           )}
         </svg>
         {hover !== null && (
@@ -590,7 +596,10 @@ export function Donut({
   items,
   centerLabel,
   onSelect,
+  stacked = false,
 }: {
+  /** Gráfico em cima e legenda embaixo (cards estreitos). */
+  stacked?: boolean;
   items: { key: string; label: string; value: number; color: string }[];
   centerLabel: string;
   onSelect?: (key: string) => void;
@@ -601,7 +610,7 @@ export function Donut({
   const C = 2 * Math.PI * R;
   let acc = 0;
   return (
-    <div className="flex flex-col items-center gap-5 sm:flex-row">
+    <div className={`flex flex-col items-center gap-5 ${stacked ? "" : "sm:flex-row"}`}>
       <svg
         viewBox="0 0 140 140"
         className="h-40 w-40 shrink-0 -rotate-90"

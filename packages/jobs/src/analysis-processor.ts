@@ -343,7 +343,7 @@ export async function processMeetingAnalysis(
           customerId: m.customerId,
           meetingId: m.id,
           analysisId: a.id,
-          title: `Plano de ação — ${m.title ?? "reunião"} (v${a.version})`,
+          title: `Tarefas — ${m.title ?? "reunião"} (v${a.version})`,
           createdBy: p.requestedBy,
         })
         .returning({ id: actionPlans.id });

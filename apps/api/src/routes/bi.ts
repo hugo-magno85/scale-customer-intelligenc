@@ -526,7 +526,7 @@ async function bi(tx: Tx, f: BiFilters): Promise<ReportBi> {
       direction: "down_is_good",
       comparison: cmp(tNow.pending, tCmp.pending, tCmp.existed > 0),
       spark: buckets.map((b) => tasksAt.get(b.end)!.pending),
-      source: "Ações dos planos pendentes ou em andamento ao fim do período.",
+      source: "Tarefas pendentes ou em andamento ao fim do período.",
     },
     {
       key: "overdue_tasks",
@@ -535,7 +535,7 @@ async function bi(tx: Tx, f: BiFilters): Promise<ReportBi> {
       direction: "down_is_good",
       comparison: cmp(tNow.overdue, tCmp.overdue, tCmp.existed > 0),
       spark: buckets.map((b) => tasksAt.get(b.end)!.overdue),
-      source: "Ações pendentes com prazo vencido ao fim do período. Percentual sobre as pendentes.",
+      source: "Tarefas pendentes com prazo vencido ao fim do período. Percentual sobre as pendentes.",
     },
   ];
 

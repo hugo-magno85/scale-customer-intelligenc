@@ -50,7 +50,7 @@ export default function PlansPage() {
   return (
     <>
       <PageHeader
-        title="Planos de Ação"
+        title="Tarefas"
         subtitle="Tarefas geradas pelas análises das reuniões, com evidência e recomendação."
         actions={
           <select

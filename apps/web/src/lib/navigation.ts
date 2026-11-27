@@ -83,7 +83,7 @@ export const NAV: NavItem[] = [
   },
   {
     href: "/app/planos",
-    label: "Planos de Ação",
+    label: "Tarefas",
     icon: ClipboardList,
     permission: "action_plans.read",
     stage: 1,

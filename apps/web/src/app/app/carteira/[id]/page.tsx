@@ -160,7 +160,7 @@ export default function CustomerPage() {
       <h2 className="mb-3 mt-8 text-lg font-semibold">Linha do tempo</h2>
       {meetings.data?.length === 0 && (
         <Empty title="Sem reuniões registradas">
-          As reuniões, análises e planos de ação deste cliente aparecerão aqui em ordem cronológica.
+          As reuniões, análises e tarefas deste cliente aparecerão aqui em ordem cronológica.
         </Empty>
       )}
       {meetings.data && meetings.data.length > 0 && (

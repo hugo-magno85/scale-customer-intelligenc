@@ -4,6 +4,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Novo visual do dashboard e "Tarefas"
+
+- Dashboard redesenhado no Claude Design e aplicado com dados reais:
+  - visual claro e vibrante, mais compacto (menos rolagem);
+  - Customer Health compacto e cards com fundo em gradiente pela cor do indicador;
+  - faixa de Execução: reuniões e tarefas;
+  - Top 5 em risco, Top 5 oportunidades e fatores de risco;
+  - análises detalhadas em "Análise completa", que abre por clique.
+- Período em atalhos rápidos e demais filtros num painel com contador.
+- Gráfico de evolução com escala ajustada aos dados.
+- "Planos de ação" passa a se chamar "Tarefas" em todo o sistema.
+
 ### Marca própria da inteligência
 
 - Nenhuma tela, mensagem ou resposta da API mostra os fornecedores de IA ao cliente.

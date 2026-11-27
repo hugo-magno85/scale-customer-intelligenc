@@ -74,6 +74,11 @@ export function biQuery(s: BiState): string {
   return p.toString();
 }
 
+/** Quantos filtros além do período estão ativos (contador do botão Filtros). */
+export const activeFilterCount = (s: BiState) =>
+  [s.compare !== DEFAULT_BI.compare, s.ownerUserId, s.segment, s.playbookId, s.health, s.risk].filter(Boolean)
+    .length;
+
 export const isFiltered = (s: BiState) =>
   s.preset !== DEFAULT_BI.preset ||
   s.compare !== DEFAULT_BI.compare ||
@@ -83,14 +88,29 @@ const sel =
   "h-9 rounded-lg border border-line bg-white/90 px-2.5 text-sm shadow-[0_1px_1px_rgba(15,23,41,0.03)] outline-none transition focus:border-bi-blue focus:ring-2 focus:ring-bi-blue/15";
 
 /** Filtros globais: todos os componentes do BI usam este estado. */
-export function BiFilterBar({ value, onChange }: { value: BiState; onChange: (v: BiState) => void }) {
+export function BiFilterBar({
+  value,
+  onChange,
+  variant = "bar",
+}: {
+  value: BiState;
+  onChange: (v: BiState) => void;
+  /** "panel": painel aberto pelo botão Filtros do dashboard (sem barra fixa). */
+  variant?: "bar" | "panel";
+}) {
   const { can } = useSession();
   const members = useApi<TenantMember[]>(can("users.read") ? "/members" : null);
   const playbooks = useApi<Playbook[]>(can("playbooks.read") ? "/playbooks" : null);
   const set = (patch: Partial<BiState>) => onChange({ ...value, ...patch });
   const range = presetRange(value.preset, value);
   return (
-    <div className="sticky top-0 z-30 -mx-4 mb-6 border-b border-line/60 bg-canvas/85 px-4 py-3 backdrop-blur md:-mx-10 md:px-10">
+    <div
+      className={
+        variant === "panel"
+          ? "rounded-[20px] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,64,.05),0_8px_24px_-12px_rgba(16,24,64,.14)]"
+          : "sticky top-0 z-30 -mx-4 mb-6 border-b border-line/60 bg-canvas/85 px-4 py-3 backdrop-blur md:-mx-10 md:px-10"
+      }
+    >
       <div className="flex flex-wrap items-center gap-2">
         <select
           className={sel}

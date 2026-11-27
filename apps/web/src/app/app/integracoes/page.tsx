@@ -208,12 +208,7 @@ export default function IntegrationsPage() {
                           "publishComment",
                           c.provider === "pipedrive" ? "Nota com o resumo" : "Comentário com o resumo",
                         ],
-                        [
-                          "publishTasks",
-                          c.provider === "pipedrive"
-                            ? "Atividades do plano de ação"
-                            : "Tarefas do plano de ação",
-                        ],
+                        ["publishTasks", c.provider === "pipedrive" ? "Atividades (tarefas)" : "Tarefas"],
                         ["publishFields", "Campos: Health, risco e data"],
                       ] as const
                     ).map(([k, label]) => (

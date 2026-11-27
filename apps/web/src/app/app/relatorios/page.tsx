@@ -37,7 +37,7 @@ const EXPORTS = [
   },
   {
     type: "tasks",
-    title: "Planos de ação",
+    title: "Tarefas",
     desc: "Tarefas, responsáveis, prazos, prioridade e status (inclui atrasadas).",
   },
 ] as const;

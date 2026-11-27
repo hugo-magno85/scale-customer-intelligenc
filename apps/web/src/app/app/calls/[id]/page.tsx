@@ -146,7 +146,7 @@ export default function MeetingPage() {
           />
           {tasks.data && tasks.data.length > 0 && (
             <>
-              <h2 className="mb-3 mt-8 text-lg font-semibold">Plano de ação</h2>
+              <h2 className="mb-3 mt-8 text-lg font-semibold">Tarefas da reunião</h2>
               <Card className="space-y-2">
                 {tasks.data.map((t) => (
                   <div key={t.id} className="flex flex-wrap justify-between gap-2 text-sm">
