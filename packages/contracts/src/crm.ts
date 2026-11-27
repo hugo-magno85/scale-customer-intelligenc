@@ -22,7 +22,7 @@ export const CRM_ENTITY_LABELS: Record<CrmEntityType, string> = {
 };
 
 /** Situação de cada CRM no produto. Só "available" após autenticação, consulta real, validação e testes. */
-export const CrmProviderStatus = z.enum(["awaiting_credentials", "available"]);
+export const CrmProviderStatus = z.enum(["awaiting_credentials", "homologation", "available"]);
 
 export const CrmProviderInfo = z.object({
   key: CrmProviderKey,

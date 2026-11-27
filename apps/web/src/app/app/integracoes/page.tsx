@@ -73,11 +73,13 @@ export default function IntegrationsPage() {
             <div>
               <div className="font-semibold">{pr.label}</div>
               <div
-                className={`mt-1 text-xs ${pr.status === "available" ? "text-healthy" : "text-attention"}`}
+                className={`mt-1 text-xs ${pr.status === "available" ? "text-healthy" : pr.status === "homologation" ? "text-brand" : "text-attention"}`}
               >
                 {pr.status === "available"
                   ? "Integração disponível"
-                  : "Aguardando homologação com conta real"}
+                  : pr.status === "homologation"
+                    ? "Em homologação — já conecta e consulta registros"
+                    : "Aguardando homologação com conta real"}
               </div>
               <p className="mt-2 text-xs text-ink-soft">Vínculo manual: {pr.referenceHint}</p>
             </div>
@@ -130,12 +132,21 @@ export default function IntegrationsPage() {
               </select>
             </label>
             <Input
-              label="Credencial (opcional agora)"
+              label={adding === "bitrix24" ? "URL do webhook de entrada" : "Credencial (opcional agora)"}
               name="secret"
               type="password"
               autoComplete="off"
               minLength={8}
+              required={adding === "bitrix24"}
+              placeholder={adding === "bitrix24" ? "https://suaempresa.bitrix24.com.br/rest/1/…/" : undefined}
             />
+            {adding === "bitrix24" && (
+              <p className="text-xs text-ink-soft sm:col-span-2 lg:col-span-4">
+                No Bitrix24: Recursos para desenvolvedores → Outros → Webhook de entrada, com as permissões
+                CRM, Tarefas e Usuários. A URL fica guardada cifrada e não aparece de novo. Depois de salvar,
+                clique em “Validar conexão”.
+              </p>
+            )}
             <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
               <Button type="submit">Salvar conexão</Button>
               <Button type="button" variant="ghost" onClick={() => setAdding(null)}>

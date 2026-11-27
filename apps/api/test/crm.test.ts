@@ -50,10 +50,15 @@ beforeAll(async () => {
 afterAll(async () => ctx?.close());
 
 describe("conexões de CRM", () => {
-  it("lista os 4 CRMs aguardando homologação", async () => {
+  it("lista os 4 CRMs: Bitrix24 em homologação, os demais aguardando", async () => {
     const p = (await client(ctx, admin, tenant).get("/crm/providers")).json();
     expect(p.map((x: { key: string }) => x.key)).toEqual(["bitrix24", "pipedrive", "rdstation", "zoho"]);
-    expect(p.every((x: { status: string }) => x.status === "awaiting_credentials")).toBe(true);
+    expect(p.map((x: { status: string }) => x.status)).toEqual([
+      "homologation",
+      "awaiting_credentials",
+      "awaiting_credentials",
+      "awaiting_credentials",
+    ]);
   });
 
   it("guarda a credencial cifrada e nunca a devolve", async () => {
@@ -80,6 +85,29 @@ describe("conexões de CRM", () => {
     expect(row.encrypted_credentials).toMatch(/^v1:k1:/);
     expect(row.encrypted_credentials).not.toContain("token-super-secreto");
     expect(auditRows[0].m).not.toContain("token-super-secreto");
+  });
+
+  it("Bitrix24: só aceita a URL do webhook de entrada do próprio portal", async () => {
+    const a = client(ctx, admin, tenant);
+    const base = {
+      provider: "bitrix24",
+      label: "Bitrix",
+      externalAccountId: "acme.bitrix24.com.br",
+      authType: "webhook",
+    };
+    for (const secret of [
+      "https://evil.example.com/rest/1/abcdef123456/",
+      "https://outra.bitrix24.com.br/rest/1/abcdef123456/",
+      "http://acme.bitrix24.com.br/rest/1/abcdef123456/",
+      "abcdef123456",
+    ]) {
+      const r = await a.post("/crm/connections", { ...base, secret });
+      expect(r.statusCode).toBe(400);
+      expect(r.body).not.toContain("abcdef123456");
+    }
+    expect(
+      (await a.post("/crm/connections", { ...base, authType: "oauth", secret: "x".repeat(20) })).statusCode,
+    ).toBe(400);
   });
 
   it("validar conexão sem integração homologada é recusado com explicação", async () => {

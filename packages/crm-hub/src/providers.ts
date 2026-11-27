@@ -35,7 +35,8 @@ export interface CrmClientFactory {
 
 const META: Record<CrmProviderKey, Omit<CrmProviderInfo, "key" | "label" | "status">> = {
   bitrix24: {
-    authTypes: ["oauth", "webhook"],
+    // Webhook de entrada (uma conta Bitrix24). OAuth/Marketplace fica para quando houver app publicado.
+    authTypes: ["webhook"],
     entityTypes: ["deal", "company", "contact", "lead"],
     referenceHint: "URL do negócio (…/crm/deal/details/123/) ou ID numérico",
   },
@@ -59,6 +60,12 @@ const META: Record<CrmProviderKey, Omit<CrmProviderInfo, "key" | "label" | "stat
 /** Implementações homologadas. Vazio até cada CRM ser validado com conta e documentação oficial. */
 const CLIENTS: Partial<Record<CrmProviderKey, CrmClientFactory>> = {};
 
+/**
+ * CRMs cujo cliente já passou por autenticação, consulta real, validação e testes com conta real.
+ * Cliente registrado sem homologação aparece como "Em homologação": funciona, mas sem garantia.
+ */
+const HOMOLOGATED: Partial<Record<CrmProviderKey, true>> = {};
+
 export function registerCrmClient(provider: CrmProviderKey, factory: CrmClientFactory) {
   CLIENTS[provider] = factory;
 }
@@ -71,7 +78,7 @@ export function listProviders(): CrmProviderInfo[] {
   return CRM_PROVIDERS.map((key) => ({
     key,
     label: CRM_LABELS[key],
-    status: CLIENTS[key] ? "available" : "awaiting_credentials",
+    status: !CLIENTS[key] ? "awaiting_credentials" : HOMOLOGATED[key] ? "available" : "homologation",
     ...META[key],
   }));
 }

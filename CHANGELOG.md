@@ -4,6 +4,16 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/); 
 
 ## [Não lançado]
 
+### Bitrix24 (em homologação)
+
+- Cliente REST por webhook de entrada:
+  - validação da conexão;
+  - consulta de negócio, empresa, contato e lead, com responsável;
+  - comentário na timeline e tarefa vinculada (só com aprovação);
+  - limites e erros conforme a documentação oficial.
+- A URL do webhook é validada no cadastro (https, domínio `*.bitrix24.*` e mesmo portal); a credencial fica cifrada.
+- Novo status "Em homologação" na tela de Integrações; formulário específico para o webhook do Bitrix24.
+
 ### BI Executivo
 
 - Novo dashboard executivo (`/app/dashboard`, `GET /v1/reports/bi`):

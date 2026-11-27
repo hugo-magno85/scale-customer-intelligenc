@@ -9,7 +9,13 @@ import {
   ParsedCrmReference,
   type CrmRecordSnapshot,
 } from "@sci/contracts";
-import { crmClientFactory, listProviders, parseCrmReference, ReferenceError } from "@sci/crm-hub";
+import {
+  credentialFormatError,
+  crmClientFactory,
+  listProviders,
+  parseCrmReference,
+  ReferenceError,
+} from "@sci/crm-hub";
 import { and, asc, crmConnections, eq, meetingCrmLinks, meetings, sql, users, type Tx } from "@sci/db";
 import { decryptSecret, encryptSecret, keyringFromEnv, type Keyring } from "@sci/security";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -152,7 +158,22 @@ export async function crmRoutes(base: FastifyInstance) {
       preHandler: requirePermission("integrations.manage"),
     },
     async (req, reply) => {
-      const b = req.body;
+      // Bitrix24: a conta é o endereço do portal (sem protocolo/caminho), igual ao que vem na URL do negócio
+      const b =
+        req.body.provider === "bitrix24"
+          ? {
+              ...req.body,
+              externalAccountId: req.body.externalAccountId
+                .trim()
+                .toLowerCase()
+                .replace(/^https?:\/\//, "")
+                .replace(/\/.*$/, ""),
+            }
+          : req.body;
+      const formatError = b.secret
+        ? credentialFormatError(b.provider, b.authType, b.externalAccountId, b.secret)
+        : null;
+      if (formatError) throw badRequest(formatError);
       const encrypted = b.secret ? encryptSecret(b.secret, getKeyring(), req.tenant!.tenantId) : null;
       try {
         const c = await tenantTx(req, async (tx) => {
@@ -206,6 +227,15 @@ export async function crmRoutes(base: FastifyInstance) {
         if (req.body.status) patch.status = req.body.status;
         if (req.body.label) patch.label = req.body.label;
         if (req.body.secret) {
+          const [cur] = await tx.select().from(crmConnections).where(eq(crmConnections.id, req.params.id));
+          if (!cur) throw notFound("Conexão");
+          const formatError = credentialFormatError(
+            cur.provider,
+            cur.authType,
+            cur.externalAccountId,
+            req.body.secret,
+          );
+          if (formatError) throw badRequest(formatError);
           patch.encryptedCredentials = encryptSecret(req.body.secret, getKeyring(), req.tenant!.tenantId);
           patch.status = "pending";
         }

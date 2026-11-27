@@ -109,8 +109,15 @@ describe("cliente HTTP resiliente", () => {
 });
 
 describe("registro de CRMs", () => {
-  it("nenhum CRM aparece como disponível sem implementação homologada", () => {
-    expect(listProviders().every((p) => p.status === "awaiting_credentials")).toBe(true);
+  it("nenhum CRM aparece como disponível sem homologação com conta real", () => {
+    const st = Object.fromEntries(listProviders().map((p) => [p.key, p.status]));
+    expect(st).toEqual({
+      bitrix24: "homologation",
+      pipedrive: "awaiting_credentials",
+      rdstation: "awaiting_credentials",
+      zoho: "awaiting_credentials",
+    });
     expect(crmClientFactory("pipedrive")).toBeNull();
+    expect(crmClientFactory("bitrix24")).not.toBeNull();
   });
 });
